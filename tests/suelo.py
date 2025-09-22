@@ -14,7 +14,7 @@ ALTO = 400
 FPS = 60
 
 ventana = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Dinosaurio con 2 imágenes")
+pygame.display.set_caption("Dinosaurio")
 
 # Colores
 BLANCO = (255, 255, 255)
@@ -27,8 +27,8 @@ fuente = pygame.font.SysFont("Arial", 28)
 # CARGA DE IMÁGENES
 # ==============================
 try:
-    dino_img = pygame.image.load("dino.PNG").convert_alpha()
-    cactus_img = pygame.image.load("cactus1.jpg").convert_alpha()
+    dino_img = pygame.image.load("img/dino.png").convert_alpha()
+    cactus_img = pygame.image.load("img/cactus1.png").convert_alpha()
 except pygame.error as e:
     print("Error al cargar imágenes:", e)
     sys.exit()
