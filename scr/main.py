@@ -1,150 +1,135 @@
 import pygame
 import random
-import sys
 
+# Inicialización Pygame
 pygame.init()
-pygame.mixer.init()
 
-ANCHO = 400
-ALTO = 300
-FPS = 60
+# Pantalla
+WIDTH, HEIGHT = 500, 300
+WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Dinosaurio con Pygame")
 
-ventana = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Dinosaurio con 2 imágenes")
+# Cargar imágenes
+DINO_IMG = pygame.image.load("dino_custom.png").convert_alpha()      # Imagen del dinosaurio con la cabeza
+CACTUS1 = pygame.image.load("cactus1.png").convert_alpha()          # Primer cactus
+CACTUS2 = pygame.image.load("cactus2.png").convert_alpha()          # Segundo cactus
+BACKGROUND = pygame.image.load("background.png").convert_alpha()    # Fondo (paisaje lunar)
+GAME_OVER_IMG = pygame.image.load("game_over.png").convert_alpha()  # Game Over
 
-# Colores
-BLANCO = (255, 255, 255)
-NEGRO = (0, 0, 0) # Fondo negro
+# Variables y constantes
+GROUND_LEVEL = HEIGHT - 70
+GRAVITY = 1
+JUMP_VEL = -15
+CACTUS_SPEED = 7
 
-# Fuente
-fuente = pygame.font.SysFont("Arial", 28)
+FONT = pygame.font.SysFont('Arial', 24)
 
+class Dinosaur:
+    def __init__(self):
+        self.image = DINO_IMG
+        self.rect = self.image.get_rect()
+        self.rect.x = 50
+        self.rect.y = GROUND_LEVEL - self.rect.height
+        self.vel_y = 0
+        self.is_jumping = False
 
-# CARGA DE IMÁGENES
-try:
-    dino_img = pygame.image.load("imagenes/dino.PNG").convert_alpha()
-    cactus_img = pygame.image.load("imagenes/cactus1.jpg").convert_alpha()
-except pygame.error as e:
-    print("Error al cargar imágenes:", e)
-    sys.exit()
+    def jump(self):
+        if not self.is_jumping:
+            self.vel_y = JUMP_VEL
+            self.is_jumping = True
 
-# Escalar imágenes
-dino_img = pygame.transform.scale(dino_img, (60, 60))
-cactus_img = pygame.transform.scale(cactus_img, (40, 60))
+    def move(self):
+        self.vel_y += GRAVITY
+        self.rect.y += self.vel_y
 
-# Dinosaurio
-dino_x = 50
-dino_y = ALTO - 60 - dino_img.get_height()
-dino_vel_y = 0
-gravedad = 1.2
-en_suelo = True
+        if self.rect.bottom >= GROUND_LEVEL:
+            self.rect.bottom = GROUND_LEVEL
+            self.is_jumping = False
 
-# Obstáculos
-obstaculos = []
-velocidad_obstaculos = 6
-tiempo_ultimo_obstaculo = 0
-tiempo_entre_obstaculos = 1500  # ms
+    def draw(self, win):
+        win.blit(self.image, (self.rect.x, self.rect.y))
 
-# Puntuación
-puntaje = 0
-record = 0
-juego_activo = True
+class Cactus:
+    def __init__(self):
+        self.image = random.choice([CACTUS1, CACTUS2])
+        self.rect = self.image.get_rect()
+        self.rect.x = WIDTH + random.randint(0, 200)
+        self.rect.y = GROUND_LEVEL - self.rect.height
 
-# Reloj
-clock = pygame.time.Clock()
+    def move(self):
+        self.rect.x -= CACTUS_SPEED
 
+    def draw(self, win):
+        win.blit(self.image, (self.rect.x, self.rect.y))
 
-# FUNCIONES
-def mostrar_texto(texto, x, y, color=BLANCO, tamaño=28): # Texto blanco para el fondo negro
-    fuente_local = pygame.font.SysFont("Arial", tamaño)
-    render = fuente_local.render(texto, True, color)
-    ventana.blit(render, (x, y))
+def main():
+    run = True
+    clock = pygame.time.Clock()
+    dinosaur = Dinosaur()
+    cactuses = [Cactus()]
+    score = 0
+    game_over = False
 
-def reiniciar_juego():
-    global dino_y, dino_vel_y, en_suelo, obstaculos, puntaje, juego_activo
-    dino_y = ALTO - 60 - dino_img.get_height()
-    dino_vel_y = 0
-    en_suelo = True
-    obstaculos.clear()
-    puntaje = 0
-    juego_activo = True
+    while run:
+        clock.tick(30)
+        WIN.fill((255, 255, 255))
+        WIN.blit(BACKGROUND, (0, 0))
 
-def crear_obstaculo():
-    rect = cactus_img.get_rect()
-    rect.x = ANCHO + random.randint(0, 100)
-    rect.y = ALTO - 60 - rect.height
-    return rect
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
 
-
-# BUCLE PRINCIPAL
-while True:
-    dt = clock.tick(FPS)
-    ventana.fill(NEGRO) # Fondo negro
-
-    # EVENTOS
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-
-        if juego_activo:
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and en_suelo:
-                    dino_vel_y = -18
-                    en_suelo = False
+                if event.key == pygame.K_SPACE and not game_over:
+                    dinosaur.jump()
+                if event.key == pygame.K_r and game_over:
+                    # Reiniciar juego
+                    dinosaur = Dinosaur()
+                    cactuses = [Cactus()]
+                    score = 0
+                    game_over = False
+
+        if not game_over:
+            dinosaur.move()
+            dinosaur.draw(WIN)
+
+            # Mover y dibujar cactus
+            rem = []
+            add_cactus = False
+            for cactus in cactuses:
+                cactus.move()
+                cactus.draw(WIN)
+                if cactus.rect.right < 0:
+                    rem.append(cactus)
+                if not add_cactus and cactus.rect.centerx < WIDTH // 2:
+                    add_cactus = True
+
+                # Colisión
+                if dinosaur.rect.colliderect(cactus.rect):
+                    game_over = True
+
+            if add_cactus:
+                cactuses.append(Cactus())
+            for r in rem:
+                cactuses.remove(r)
+
+            # Puntaje
+            score += 1
+            score_text = FONT.render(f"Puntaje: {score//10}", True, (0, 0, 0))
+            WIN.blit(score_text, (600, 20))
         else:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                reiniciar_juego()
+            # Mostrar texto Game Over
+            WIN.blit(GAME_OVER_IMG, ((WIDTH - GAME_OVER_IMG.get_width()) // 2,
+                                     (HEIGHT - GAME_OVER_IMG.get_height()) // 2))
 
-    if juego_activo:
-        
-        # MOVIMIENTO DEL DINOSAURIO
-        dino_vel_y += gravedad
-        dino_y += dino_vel_y
+            reiniciar_text = FONT.render("Presiona R para reiniciar", True, (255, 255, 255))
+            WIN.blit(reiniciar_text, ((WIDTH - reiniciar_text.get_width()) // 2,
+                                      (HEIGHT - GAME_OVER_IMG.get_height()) // 2 + 70))
 
-        if dino_y >= ALTO - 60 - dino_img.get_height():
-            dino_y = ALTO - 60 - dino_img.get_height()
-            en_suelo = True
+        pygame.display.update()
 
-        # GENERAR OBSTÁCULOS
-        tiempo_actual = pygame.time.get_ticks()
-        if tiempo_actual - tiempo_ultimo_obstaculo > tiempo_entre_obstaculos:
-            obstaculos.append(crear_obstaculo())
-            tiempo_ultimo_obstaculo = tiempo_actual
+    pygame.quit()
 
-        # Mover y dibujar obstáculos
-        for obstaculo in obstaculos:
-            obstaculo.x -= velocidad_obstaculos
-            ventana.blit(cactus_img, obstaculo)
 
-        # Eliminar obstáculos que salen
-        obstaculos = [o for o in obstaculos if o.x + o.width > 0]
-
-        
-        # DETECCIÓN DE COLISIONES
-        dino_rect = pygame.Rect(dino_x, dino_y, dino_img.get_width(), dino_img.get_height())
-        for obstaculo in obstaculos:
-            if dino_rect.colliderect(obstaculo):
-                juego_activo = False
-                if puntaje > record:
-                    record = int(puntaje)
-
-        
-        # ACTUALIZAR PUNTUACIÓN
-        puntaje += 0.1
-
-      
-        # DIBUJAR DINOSAURIO
-        ventana.blit(dino_img, (dino_x, dino_y))
-
-        
-        # HUD
-        mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10)
-        mostrar_texto(f"Record: {record}", ANCHO - 150, 10)
-
-    else:
-        # Pantalla de Game Over
-        mostrar_texto("GAME OVER", ANCHO // 2 - 80, ALTO // 2 - 30, BLANCO, 36) # Texto blanco
-        mostrar_texto("Presiona ESPACIO para reiniciar", ANCHO // 2 - 160, ALTO // 2 + 20, BLANCO) # Texto blanco
-
-    pygame.display.flip()
+if __name__ == "__main__":
+    main()
