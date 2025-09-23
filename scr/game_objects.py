@@ -4,15 +4,19 @@ import random
 # ==============================
 # CLASE PERRO
 # ==============================
+# Dentro del archivo game_objects.py
+
 class Perro(pygame.sprite.Sprite):
-    def __init__(self, imagenes_corriendo, ancho_ventana, alto_ventana, altura_suelo):
+    def __init__(self, imagenes_corriendo, imagen_salto, imagen_aire, ancho_ventana, alto_ventana, altura_suelo):
         super().__init__()
+        
         self.imagenes_corriendo = imagenes_corriendo
-        self.imagen_salto = imagenes_corriendo[0]
+        self.imagen_salto = imagen_salto
+        self.imagen_aire = imagen_aire
         self.indice_animacion = 0
         self.tiempo_animacion = 0
         self.velocidad_animacion = 100
-        # Renombrado de 'imagen' a 'image' para Pygame
+        
         self.image = self.imagenes_corriendo[self.indice_animacion]
         self.rect = self.image.get_rect()
         self.rect.x = 50
@@ -37,14 +41,19 @@ class Perro(pygame.sprite.Sprite):
             self.en_suelo = True
             self.velocidad_y = 0
 
-        if self.en_suelo:
             self.tiempo_animacion += dt
             if self.tiempo_animacion >= self.velocidad_animacion:
                 self.indice_animacion = (self.indice_animacion + 1) % len(self.imagenes_corriendo)
                 self.image = self.imagenes_corriendo[self.indice_animacion]
                 self.tiempo_animacion = 0
+                
         else:
-            self.image = self.imagen_salto
+            if self.velocidad_y < 0:
+                self.image = self.imagen_salto
+            else:
+                self.image = self.imagen_aire
+        
+        self.mask = pygame.mask.from_surface(self.image)
     
     def dibujar(self, superficie):
         superficie.blit(self.image, self.rect)
@@ -62,7 +71,6 @@ class Perro(pygame.sprite.Sprite):
 class Obstaculo(pygame.sprite.Sprite):
     def __init__(self, imagenes, ancho_ventana, alto_ventana, altura_suelo, velocidad_juego):
         super().__init__()
-        # Renombrado de 'imagen' a 'image'
         self.image = random.choice(imagenes)
         self.rect = self.image.get_rect()
         self.rect.x = ancho_ventana
@@ -81,7 +89,6 @@ class Obstaculo(pygame.sprite.Sprite):
 class Fondo(pygame.sprite.Sprite):
     def __init__(self, imagen, velocidad_multiplicador):
         super().__init__()
-        # Renombrado de 'imagen' a 'image'
         self.image = imagen
         self.rect = self.image.get_rect()
         self.velocidad_multiplicador = velocidad_multiplicador
@@ -94,6 +101,5 @@ class Fondo(pygame.sprite.Sprite):
             self.rect.x = 0
     
     def dibujar(self, superficie):
-        # El fondo se dibuja siempre en la parte superior (y=0)
         superficie.blit(self.image, (self.rect.x, 0))
         superficie.blit(self.image, (self.rect.x + self.rect.width, 0))

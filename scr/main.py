@@ -37,6 +37,9 @@ try:
             pygame.image.load(os.path.join(RUTA_BASE, "perro_run3.png")).convert_alpha(),
             pygame.image.load(os.path.join(RUTA_BASE, "perro_run4.png")).convert_alpha()
         ],
+        # Add the jump and air images
+        'perro_salto': pygame.image.load(os.path.join(RUTA_BASE, "perro_jump.png")).convert_alpha(),
+        'perro_aire': pygame.image.load(os.path.join(RUTA_BASE, "perro_air.png")).convert_alpha(),
         'cactus': [
             pygame.image.load(os.path.join(RUTA_BASE, "cactus1.png")).convert_alpha(),
             pygame.image.load(os.path.join(RUTA_BASE, "cactus2.png")).convert_alpha(),
@@ -56,13 +59,16 @@ imagenes['fondo_completo'] = pygame.transform.scale(imagenes['fondo_completo'], 
 # ==============================
 # VARIABLES DEL JUEGO
 # ==============================
-ALTURA_SUELO = 80  
+ALTURA_SUELO = 80
 
 perro_corriendo_imgs = [pygame.transform.scale(img, (80, 80)) for img in imagenes['perro_corriendo']]
+# Scale the new images
+perro_salto_img = pygame.transform.scale(imagenes['perro_salto'], (80, 80))
+perro_aire_img = pygame.transform.scale(imagenes['perro_aire'], (80, 80))
 cactus_imgs = [pygame.transform.scale(img, (120, 150)) for img in imagenes['cactus']]
 
-perro = Perro(perro_corriendo_imgs, ANCHO, ALTO, ALTURA_SUELO)
-# Usamos un solo objeto Fondo para el fondo completo
+# Pass all the necessary images to the Perro class
+perro = Perro(perro_corriendo_imgs, perro_salto_img, perro_aire_img, ANCHO, ALTO, ALTURA_SUELO)
 fondo_completo = Fondo(imagenes['fondo_completo'], 0.5) 
 obstaculos = pygame.sprite.Group()
 
@@ -97,6 +103,7 @@ while True:
     if juego_activo:
         fondo_completo.actualizar(velocidad_juego)
         perro.actualizar(dt)
+        obstaculos.update()
 
         tiempo_actual = pygame.time.get_ticks()
         if tiempo_actual - tiempo_ultimo_obstaculo > 1500:
