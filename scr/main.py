@@ -5,16 +5,16 @@ import random
 pygame.init()
 
 # Pantalla
-WIDTH, HEIGHT = 500, 300
+WIDTH, HEIGHT = 1200, 800
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Dinosaurio con Pygame")
 
 # Cargar imágenes
-DINO_IMG = pygame.image.load("dino_custom.png").convert_alpha()      # Imagen del dinosaurio con la cabeza
-CACTUS1 = pygame.image.load("cactus1.png").convert_alpha()          # Primer cactus
-CACTUS2 = pygame.image.load("cactus2.png").convert_alpha()          # Segundo cactus
-BACKGROUND = pygame.image.load("background.png").convert_alpha()    # Fondo (paisaje lunar)
-GAME_OVER_IMG = pygame.image.load("game_over.png").convert_alpha()  # Game Over
+DINO_IMG = pygame.image.load("img/dino.png").convert_alpha()      # Imagen del dinosaurio con la cabeza
+CACTUS1 = pygame.image.load("img/cactus1.png").convert_alpha()          # Primer cactus
+CACTUS2 = pygame.image.load("img/cactus2.png").convert_alpha()          # Segundo cactus
+BACKGROUND = pygame.image.load("img/fondo.png").convert_alpha()    # Fondo (paisaje lunar)
+GAME_OVER_IMG = pygame.image.load("img/gameover.png").convert_alpha()  # Game Over
 
 # Variables y constantes
 GROUND_LEVEL = HEIGHT - 70
