@@ -16,7 +16,7 @@ ANCHO = 800
 ALTO = 450
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Corredor Lunar")
+pygame.display.set_caption("Dino")
 
 # Rutas de archivos
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
@@ -33,7 +33,6 @@ try:
     imagenes = {
         'perro_corriendo': [
             pygame.image.load(os.path.join(RUTA_BASE, "perro_run1.png")).convert_alpha(),
-            pygame.image.load(os.path.join(RUTA_BASE, "perro_run2.png")).convert_alpha(),
             pygame.image.load(os.path.join(RUTA_BASE, "perro_run3.png")).convert_alpha(),
             pygame.image.load(os.path.join(RUTA_BASE, "perro_run4.png")).convert_alpha()
         ],
@@ -42,18 +41,12 @@ try:
         'cactus': [
             pygame.image.load(os.path.join(RUTA_BASE, "cactus1.png")).convert_alpha(),
             pygame.image.load(os.path.join(RUTA_BASE, "cactus2.png")).convert_alpha(),
-            pygame.image.load(os.path.join(RUTA_BASE, "milei.png")).convert_alpha()
+            pygame.image.load(os.path.join(RUTA_BASE, "cactus3.png")).convert_alpha()
         ],
         'fondo_completo': pygame.image.load(os.path.join(RUTA_BASE, "fondo.png")).convert(),
         'game_over': pygame.image.load(os.path.join(RUTA_BASE, "game_over.png")).convert_alpha(),
         'luna': pygame.image.load(os.path.join(RUTA_BASE, "luna.png")).convert_alpha()
     }
-    
-    # --- Añade estas líneas ---
-    print(f"Número de imágenes de cactus cargadas: {len(imagenes['cactus'])}")
-    for i, img in enumerate(imagenes['cactus']):
-        print(f"Tamaño del cactus {i+1}: {img.get_size()}")
-    # -------------------------
 
 except pygame.error as e:
     print(f"Error al cargar imágenes: {e}")
@@ -66,13 +59,12 @@ imagenes['fondo_completo'] = pygame.transform.scale(imagenes['fondo_completo'], 
 # VARIABLES DEL JUEGO
 # ==============================
 ALTURA_SUELO = 30
-PERRO_ANCHO = 150
-PERRO_ALTO = 150
 
-perro_corriendo_imgs = [pygame.transform.scale(img, (PERRO_ANCHO, PERRO_ALTO)) for img in imagenes['perro_corriendo']]
-perro_salto_img = pygame.transform.scale(imagenes['perro_salto'], (PERRO_ANCHO, PERRO_ALTO))
-perro_aire_img = pygame.transform.scale(imagenes['perro_aire'], (PERRO_ANCHO, PERRO_ALTO))
-cactus_imgs = [pygame.transform.scale(img, (120, 150)) for img in imagenes['cactus']]
+perro_corriendo_imgs = [pygame.transform.scale(img, (150, 150)) for img in imagenes['perro_corriendo']]
+perro_salto_img = pygame.transform.scale(imagenes['perro_salto'], (150, 150))
+perro_aire_img = pygame.transform.scale(imagenes['perro_aire'], (150, 150))
+cactus_imgs = [pygame.transform.scale(img, (110, 140)) for img in imagenes['cactus']]
+luna_img = pygame.transform.scale(imagenes['luna'], (75, 75))
 
 perro = Perro(perro_corriendo_imgs, perro_salto_img, perro_aire_img, ANCHO, ALTO, ALTURA_SUELO)
 fondo_completo = Fondo(imagenes['fondo_completo'], 0.5) 
@@ -85,8 +77,6 @@ velocidad_juego = 5.5
 tiempo_ultimo_obstaculo = pygame.time.get_ticks()
 
 reloj = pygame.time.Clock()
-
-# Variables de tiempo para los cactus
 intervalo_proximo_cactus = random.randint(1000, 3000)
 
 # ==============================
@@ -116,12 +106,9 @@ while True:
         perro.actualizar(dt)
         obstaculos.update()
 
-        # Lógica de aparición de cactus corregida
         tiempo_actual = pygame.time.get_ticks()
         if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_proximo_cactus:
-            print("¡Generando un nuevo cactus!") 
             obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
-            print(f"Cantidad de obstáculos en pantalla: {len(obstaculos)}")  # <--- NUEVO
             tiempo_ultimo_obstaculo = tiempo_actual
             intervalo_proximo_cactus = random.randint(1000, 3000)
 
@@ -138,6 +125,8 @@ while True:
     fondo_completo.dibujar(VENTANA)
     obstaculos.draw(VENTANA)
     perro.dibujar(VENTANA)
+    luna_rect = luna_img.get_rect(topright=(ANCHO - 20, 20))
+    VENTANA.blit(luna_img, luna_rect)
 
     mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10, BLANCO, VENTANA)
     mostrar_texto(f"Record: {record}", ANCHO - 150, 10, BLANCO, VENTANA)
