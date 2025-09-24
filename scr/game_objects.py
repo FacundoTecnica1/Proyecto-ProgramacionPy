@@ -23,13 +23,13 @@ class Perro(pygame.sprite.Sprite):
         self.altura_suelo = alto_ventana - altura_suelo
         self.rect.y = self.altura_suelo - self.rect.height
         self.velocidad_y = 0
-        self.gravedad = 1.2
+        self.gravedad = 0.5
         self.en_suelo = True
         self.mask = pygame.mask.from_surface(self.image)
     
     def manejar_salto(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and self.en_suelo:
-            self.velocidad_y = -18
+            self.velocidad_y = -13
             self.en_suelo = False
     
     def actualizar(self, dt):
@@ -78,7 +78,7 @@ class Obstaculo(pygame.sprite.Sprite):
         self.velocidad = velocidad_juego
         self.mask = pygame.mask.from_surface(self.image)
     
-    def actualizar(self):
+    def update(self):
         self.rect.x -= self.velocidad
         if self.rect.x < -self.rect.width:
             self.kill()
@@ -86,20 +86,17 @@ class Obstaculo(pygame.sprite.Sprite):
 # ==============================
 # CLASE FONDO
 # ==============================
-class Fondo(pygame.sprite.Sprite):
-    def __init__(self, imagen, velocidad_multiplicador):
-        super().__init__()
-        self.image = imagen
-        self.rect = self.image.get_rect()
-        self.velocidad_multiplicador = velocidad_multiplicador
-        self.velocidad = 0
-    
+class Fondo:
+    def __init__(self, imagen, velocidad=0.5):
+        self.imagen = imagen
+        self.velocidad = velocidad
+        self.x = 0
+
     def actualizar(self, velocidad_juego):
-        self.velocidad = velocidad_juego * self.velocidad_multiplicador
-        self.rect.x -= self.velocidad
-        if self.rect.x <= -self.rect.width:
-            self.rect.x = 0
-    
+        self.x -= self.velocidad * velocidad_juego
+        if self.x <= -self.imagen.get_width():
+            self.x = 0
+
     def dibujar(self, superficie):
-        superficie.blit(self.image, (self.rect.x, 0))
-        superficie.blit(self.image, (self.rect.x + self.rect.width, 0))
+        superficie.blit(self.imagen, (self.x, 0))
+        superficie.blit(self.imagen, (self.x + self.imagen.get_width(), 0))

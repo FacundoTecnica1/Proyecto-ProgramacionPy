@@ -37,18 +37,24 @@ try:
             pygame.image.load(os.path.join(RUTA_BASE, "perro_run3.png")).convert_alpha(),
             pygame.image.load(os.path.join(RUTA_BASE, "perro_run4.png")).convert_alpha()
         ],
-        # Add the jump and air images
         'perro_salto': pygame.image.load(os.path.join(RUTA_BASE, "perro_jump.png")).convert_alpha(),
         'perro_aire': pygame.image.load(os.path.join(RUTA_BASE, "perro_air.png")).convert_alpha(),
         'cactus': [
             pygame.image.load(os.path.join(RUTA_BASE, "cactus1.png")).convert_alpha(),
             pygame.image.load(os.path.join(RUTA_BASE, "cactus2.png")).convert_alpha(),
-            pygame.image.load(os.path.join(RUTA_BASE, "cactus3.png")).convert_alpha()
+            pygame.image.load(os.path.join(RUTA_BASE, "milei.png")).convert_alpha()
         ],
         'fondo_completo': pygame.image.load(os.path.join(RUTA_BASE, "fondo.png")).convert(),
         'game_over': pygame.image.load(os.path.join(RUTA_BASE, "game_over.png")).convert_alpha(),
         'luna': pygame.image.load(os.path.join(RUTA_BASE, "luna.png")).convert_alpha()
     }
+    
+    # --- Añade estas líneas ---
+    print(f"Número de imágenes de cactus cargadas: {len(imagenes['cactus'])}")
+    for i, img in enumerate(imagenes['cactus']):
+        print(f"Tamaño del cactus {i+1}: {img.get_size()}")
+    # -------------------------
+
 except pygame.error as e:
     print(f"Error al cargar imágenes: {e}")
     pygame.quit()
@@ -59,15 +65,15 @@ imagenes['fondo_completo'] = pygame.transform.scale(imagenes['fondo_completo'], 
 # ==============================
 # VARIABLES DEL JUEGO
 # ==============================
-ALTURA_SUELO = 80
+ALTURA_SUELO = 30
+PERRO_ANCHO = 150
+PERRO_ALTO = 150
 
-perro_corriendo_imgs = [pygame.transform.scale(img, (80, 80)) for img in imagenes['perro_corriendo']]
-# Scale the new images
-perro_salto_img = pygame.transform.scale(imagenes['perro_salto'], (80, 80))
-perro_aire_img = pygame.transform.scale(imagenes['perro_aire'], (80, 80))
+perro_corriendo_imgs = [pygame.transform.scale(img, (PERRO_ANCHO, PERRO_ALTO)) for img in imagenes['perro_corriendo']]
+perro_salto_img = pygame.transform.scale(imagenes['perro_salto'], (PERRO_ANCHO, PERRO_ALTO))
+perro_aire_img = pygame.transform.scale(imagenes['perro_aire'], (PERRO_ANCHO, PERRO_ALTO))
 cactus_imgs = [pygame.transform.scale(img, (120, 150)) for img in imagenes['cactus']]
 
-# Pass all the necessary images to the Perro class
 perro = Perro(perro_corriendo_imgs, perro_salto_img, perro_aire_img, ANCHO, ALTO, ALTURA_SUELO)
 fondo_completo = Fondo(imagenes['fondo_completo'], 0.5) 
 obstaculos = pygame.sprite.Group()
@@ -75,10 +81,13 @@ obstaculos = pygame.sprite.Group()
 puntaje = 0
 record = 0
 juego_activo = True
-velocidad_juego = 6
+velocidad_juego = 5.5
 tiempo_ultimo_obstaculo = pygame.time.get_ticks()
 
 reloj = pygame.time.Clock()
+
+# Variables de tiempo para los cactus
+intervalo_proximo_cactus = random.randint(1000, 3000)
 
 # ==============================
 # BUCLE PRINCIPAL
@@ -96,20 +105,25 @@ while True:
             perro.reiniciar(ALTO, ALTURA_SUELO)
             obstaculos.empty()
             puntaje = 0
+            record = 0
             juego_activo = True
-            velocidad_juego = 6
+            velocidad_juego = 5.5
             tiempo_ultimo_obstaculo = pygame.time.get_ticks()
+            intervalo_proximo_cactus = random.randint(1000, 3000)
 
     if juego_activo:
         fondo_completo.actualizar(velocidad_juego)
         perro.actualizar(dt)
         obstaculos.update()
 
+        # Lógica de aparición de cactus corregida
         tiempo_actual = pygame.time.get_ticks()
-        if tiempo_actual - tiempo_ultimo_obstaculo > 1500:
-            if random.random() < 0.7:
-                obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
-                tiempo_ultimo_obstaculo = tiempo_actual
+        if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_proximo_cactus:
+            print("¡Generando un nuevo cactus!") 
+            obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
+            print(f"Cantidad de obstáculos en pantalla: {len(obstaculos)}")  # <--- NUEVO
+            tiempo_ultimo_obstaculo = tiempo_actual
+            intervalo_proximo_cactus = random.randint(1000, 3000)
 
         if pygame.sprite.spritecollide(perro, obstaculos, False, pygame.sprite.collide_mask):
             juego_activo = False
@@ -117,13 +131,13 @@ while True:
                 record = int(puntaje)
 
         puntaje += 0.1
-        if puntaje % 100 == 0 and velocidad_juego < 15:
+        if int(puntaje) % 100 == 0 and velocidad_juego < 15:
             velocidad_juego += 0.5
             
     VENTANA.fill(COLOR_ESPACIO_FONDO)
     fondo_completo.dibujar(VENTANA)
-    perro.dibujar(VENTANA)
     obstaculos.draw(VENTANA)
+    perro.dibujar(VENTANA)
 
     mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10, BLANCO, VENTANA)
     mostrar_texto(f"Record: {record}", ANCHO - 150, 10, BLANCO, VENTANA)
