@@ -134,8 +134,8 @@ while True:
     if not juego_activo:
         game_over_rect = imagenes['game_over'].get_rect(center=(ANCHO // 2, ALTO // 2 - 30))
         VENTANA.blit(imagenes['game_over'], game_over_rect)
-        mostrar_texto("Presiona ESPACIO para reiniciar", ANCHO // 2, ALTO // 2 + 50, BLANCO, VENTANA, centrado=True)
-        mostrar_texto(f"Tu puntuación: {int(puntaje)}", ANCHO // 2, ALTO // 2 + 80, BLANCO, VENTANA, centrado=True)
-        mostrar_texto(f"Record: {record}", ANCHO // 2, ALTO // 2 + 100, BLANCO, VENTANA, centrado=True)
+        mostrar_texto("Presiona ESPACIO para reiniciar", ANCHO // 2, ALTO // 2 + 90, BLANCO, VENTANA, centrado=True)
+        mostrar_texto(f"Tu puntuación: {int(puntaje)}", ANCHO // 2, ALTO // 2 + 120, BLANCO, VENTANA, centrado=True)
+        mostrar_texto(f"Record: {record}", ANCHO // 2, ALTO // 2 + 150, BLANCO, VENTANA, centrado=True)
 
     pygame.display.flip()
