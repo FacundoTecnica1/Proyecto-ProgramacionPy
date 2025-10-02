@@ -70,7 +70,7 @@ Proyecto-Dinosaurio/
 ## 📑 Documentación  
 - 📄 [Carpeta de Campo](https://docs.google.com/document/d/1PWEvjFt2JRpvwiG7trO7vT8PoXgSzEGUtTOgXIrnGBc/edit?usp=sharing)  
 - 📄 [Informe Dinosaurio](https://docs.google.com/document/d/1efqNAkmHdIXBj6DLJUk_hXVtkQ_QOHop5NcSbBFXr3A/edit?usp=sharing)  
-- 📄 [Presentacion(v1.0.1)] = (https://www.canva.com/design/DAGzwWcfe3o/Yw7oA71p6piL9RDDVTT9zw/edit?utm_content=DAGzwWcfe3o&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+- 📄 [Presentacion(v1.0.1)](https://www.canva.com/design/DAGzwWcfe3o/Yw7oA71p6piL9RDDVTT9zw/edit?utm_content=DAGzwWcfe3o&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 ---
 
 ## 📄 Licencia  
