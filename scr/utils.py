@@ -1,7 +1,7 @@
 import pygame
 
 # Colores
-BLANCO = (255, 255, 255)
+BLANCO = (255, 230, 255)
 
 def mostrar_texto(texto, x, y, color, superficie, tamaño=28, centrado=False):
     fuente = pygame.font.SysFont("Arial", tamaño)
