@@ -1,25 +1,23 @@
 import pygame
 import random
 # ==============================
-# CLASE AVE (NUEVA CLASE)
+# CLASE AVE
 # ==============================
 class Ave(pygame.sprite.Sprite):
     def __init__(self, imagenes, ancho_ventana, alto_ventana, velocidad_juego):
         super().__init__()
         
-        # Atributos de animación
         self.imagenes = imagenes
         self.indice_animacion = 0
         self.image = self.imagenes[self.indice_animacion]
         self.tiempo_animacion = 0
-        self.velocidad_animacion = 150  # Milisegundos entre cada fotograma
+        self.velocidad_animacion = 150  
 
-        # Posición y velocidad
         self.rect = self.image.get_rect()
         self.rect.x = ancho_ventana
-        # Aparece en una altura aleatoria en la parte superior de la pantalla
-        self.rect.y = random.randint(50, 150) 
-        self.velocidad = velocidad_juego + 2 # Un poco más rápido que los cactus
+
+        self.rect.y = random.randint(50, 115) 
+        self.velocidad = velocidad_juego + 2 
         self.mask = pygame.mask.from_surface(self.image)
         self.ultimo_update = pygame.time.get_ticks()
 
