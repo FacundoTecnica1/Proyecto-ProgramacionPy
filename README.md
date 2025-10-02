@@ -78,4 +78,4 @@ Este proyecto se distribuye bajo la **MIT License**.
 Consulta el archivo [LICENSE](./LICENSE) para más información.  
 
 No olvides instalar las librerías necesarias: pip install Flask mysql-connector-python flask-cors
-No olvides instalar la librería: pip install requests
+No olvides instalar la librería: pip install requestsa
