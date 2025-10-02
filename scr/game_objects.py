@@ -1,6 +1,44 @@
 import pygame
 import random
+# ==============================
+# CLASE AVE (NUEVA CLASE)
+# ==============================
+class Ave(pygame.sprite.Sprite):
+    def __init__(self, imagenes, ancho_ventana, alto_ventana, velocidad_juego):
+        super().__init__()
+        
+        # Atributos de animación
+        self.imagenes = imagenes
+        self.indice_animacion = 0
+        self.image = self.imagenes[self.indice_animacion]
+        self.tiempo_animacion = 0
+        self.velocidad_animacion = 150  # Milisegundos entre cada fotograma
 
+        # Posición y velocidad
+        self.rect = self.image.get_rect()
+        self.rect.x = ancho_ventana
+        # Aparece en una altura aleatoria en la parte superior de la pantalla
+        self.rect.y = random.randint(50, 150) 
+        self.velocidad = velocidad_juego + 2 # Un poco más rápido que los cactus
+        self.mask = pygame.mask.from_surface(self.image)
+        self.ultimo_update = pygame.time.get_ticks()
+
+    def update(self):
+        # Mover el ave hacia la izquierda
+        self.rect.x -= self.velocidad
+        
+        # Animar el ave
+        ahora = pygame.time.get_ticks()
+        if ahora - self.ultimo_update > self.velocidad_animacion:
+            self.ultimo_update = ahora
+            self.indice_animacion = (self.indice_animacion + 1) % len(self.imagenes)
+            self.image = self.imagenes[self.indice_animacion]
+            # Es importante actualizar la máscara si la imagen cambia
+            self.mask = pygame.mask.from_surface(self.image)
+
+        # Eliminar el sprite si sale de la pantalla
+        if self.rect.right < 0:
+            self.kill()
 # ==============================
 # CLASE PERRO
 # ==============================
