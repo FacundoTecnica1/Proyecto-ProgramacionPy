@@ -5,7 +5,7 @@ import os
 
 from game_objects import Perro, Obstaculo, Fondo
 from utils import mostrar_texto
-from menu import Menu
+from menu import Menu  
 
 
 pygame.init()
@@ -58,18 +58,7 @@ ALTURA_SUELO = 30
 perro_corriendo_imgs = [pygame.transform.scale(img, (150, 150)) for img in imagenes['perro_corriendo']]
 perro_salto_img = pygame.transform.scale(imagenes['perro_salto'], (150, 150))
 perro_aire_img = pygame.transform.scale(imagenes['perro_aire'], (150, 150))
-
-# Lista de imágenes de cactus de tamaño normal (las originales)
 cactus_imgs = [pygame.transform.scale(img, (110, 140)) for img in imagenes['cactus']]
-
-# =========================================================================
-# NUEVA LISTA: Imágenes de cactus más pequeños (25% menos de tamaño)
-# Usaremos estas para el segundo cactus.
-# =========================================================================
-ANCHO_CACTUS_PEQ = int(110 * 0.75)
-ALTO_CACTUS_PEQ = int(140 * 0.75)
-cactus_pequeno_imgs = [pygame.transform.scale(img, (ANCHO_CACTUS_PEQ, ALTO_CACTUS_PEQ)) for img in imagenes['cactus']]
-
 luna_img = pygame.transform.scale(imagenes['luna'], (75, 75))
 
 perro = Perro(perro_corriendo_imgs, perro_salto_img, perro_aire_img, ANCHO, ALTO, ALTURA_SUELO)
@@ -78,25 +67,16 @@ obstaculos = pygame.sprite.Group()
 
 puntaje = 0
 record = 0
-juego_activo = False
+juego_activo = False  
 velocidad_juego = 5.5
 tiempo_ultimo_obstaculo = pygame.time.get_ticks()
 intervalo_proximo_cactus = random.randint(1000, 3000)
 
-# =========================================================================
-# CONSTANTES DE JUEGO AJUSTADAS
-# =========================================================================
-CHANCE_DOBLE_CACTUS = 0.5 # 50% de probabilidad de que aparezca el segundo cactus
-SEPARACION_DOBLE_CACTUS_MIN = 60 # Reducida la separación para que estén más juntos
-SEPARACION_DOBLE_CACTUS_MAX = 90
-CHANCE_SEGUNDO_CACTUS_PEQUENO = 0.9 # 90% de probabilidad de que el segundo sea el pequeño
-
-
 reloj = pygame.time.Clock()
 
 
-menu = Menu(VENTANA, ANCHO, ALTO, record)
-accion = menu.mostrar()
+menu = Menu(VENTANA, ANCHO, ALTO, record)  
+accion = menu.mostrar()  
 
 if accion == "jugar":
     juego_activo = True
@@ -142,31 +122,7 @@ while True:
 
         tiempo_actual = pygame.time.get_ticks()
         if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_proximo_cactus:
-            # ===========================================================
-            # LÓGICA DE GENERACIÓN DE CACTUS
-            # ===========================================================
-            # 1. Siempre se genera el primer cactus (tamaño normal)
             obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
-
-            # 2. Verifica si se debe generar un segundo cactus
-            if random.random() < CHANCE_DOBLE_CACTUS:
-                
-                # Decide qué tamaño tendrá el segundo cactus
-                if random.random() < CHANCE_SEGUNDO_CACTUS_PEQUENO:
-                    # Segundo cactus pequeño
-                    imagenes_segundo_cactus = cactus_pequeno_imgs
-                    # Ajusta la separación (un valor aleatorio dentro del rango)
-                    separacion = random.randint(SEPARACION_DOBLE_CACTUS_MIN, SEPARACION_DOBLE_CACTUS_MAX)
-                else:
-                    # Segundo cactus de tamaño normal (menos probable)
-                    imagenes_segundo_cactus = cactus_imgs
-                    # Podrías querer una separación un poco mayor si ambos son grandes.
-                    separacion = random.randint(SEPARACION_DOBLE_CACTUS_MIN + 20, SEPARACION_DOBLE_CACTUS_MAX + 40)
-                    
-                # Crea el segundo cactus con el desplazamiento y las imágenes elegidas
-                obstaculos.add(Obstaculo(imagenes_segundo_cactus, ANCHO + separacion, ALTO, ALTURA_SUELO, velocidad_juego))
-
-
             tiempo_ultimo_obstaculo = tiempo_actual
             intervalo_proximo_cactus = random.randint(1000, 3000)
 
@@ -193,7 +149,7 @@ while True:
     mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10, BLANCO, VENTANA)
     mostrar_texto(f"Record: {record}", ANCHO - 150, 10, BLANCO, VENTANA)
 
-
+   
     if not juego_activo:
         game_over_rect = imagenes['game_over'].get_rect(center=(ANCHO // 2, ALTO // 2 - 30))
         VENTANA.blit(imagenes['game_over'], game_over_rect)
