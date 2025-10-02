@@ -4,7 +4,6 @@ import random
 # ==============================
 # CLASE PERRO
 # ==============================
-# Dentro del archivo game_objects.py
 
 class Perro(pygame.sprite.Sprite):
     def __init__(self, imagenes_corriendo, imagen_salto, imagen_aire, ancho_ventana, alto_ventana, altura_suelo):
