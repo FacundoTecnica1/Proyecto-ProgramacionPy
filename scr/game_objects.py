@@ -1,7 +1,48 @@
 import pygame
 import random
 
-# --- CLASE PERRO / GATO (jugador) ---
+# ==============================
+# CLASE AVE (Versión principal)
+# ==============================
+class Ave(pygame.sprite.Sprite):
+    def __init__(self, imagenes, ancho_ventana, alto_ventana, velocidad_juego):
+        super().__init__()
+        
+        self.imagenes = imagenes
+        self.indice_animacion = 0
+        self.image = self.imagenes[self.indice_animacion]
+        self.tiempo_animacion = 0
+        self.velocidad_animacion = 150  
+
+        # --- Posición y movimiento ---
+        self.rect = self.image.get_rect()
+        self.rect.x = ancho_ventana
+        self.rect.y = random.randint(50, 115) 
+        self.velocidad = velocidad_juego + 2 
+        self.mask = pygame.mask.from_surface(self.image)
+        self.ultimo_update = pygame.time.get_ticks()
+
+    def update(self):
+        # Mover el ave hacia la izquierda
+        self.rect.x -= self.velocidad
+        
+        # Animar el ave
+        ahora = pygame.time.get_ticks()
+        if ahora - self.ultimo_update > self.velocidad_animacion:
+            self.ultimo_update = ahora
+            self.indice_animacion = (self.indice_animacion + 1) % len(self.imagenes)
+            self.image = self.imagenes[self.indice_animacion]
+            # Es importante actualizar la máscara si la imagen cambia
+            self.mask = pygame.mask.from_surface(self.image)
+
+        # Eliminar el sprite si sale de la pantalla
+        if self.rect.right < 0:
+            self.kill()
+
+
+# ==============================
+# CLASE PERRO / GATO (jugador)
+# ==============================
 class Perro(pygame.sprite.Sprite):
     def __init__(self, frames_correr, imagen_salto, imagen_aire, ancho, alto, altura_suelo):
         super().__init__()
@@ -30,6 +71,7 @@ class Perro(pygame.sprite.Sprite):
         self.vel_y += self.gravedad
         self.rect.y += self.vel_y
 
+        # Limita la posición al suelo
         if self.rect.bottom >= self.alto_pantalla - self.altura_suelo:
             self.rect.bottom = self.alto_pantalla - self.altura_suelo
             self.vel_y = 0
@@ -56,7 +98,9 @@ class Perro(pygame.sprite.Sprite):
         pantalla.blit(self.image, self.rect)
 
 
-# --- CLASE OBSTÁCULO (cactus) ---
+# ==============================
+# CLASE OBSTÁCULO (Cactus)
+# ==============================
 class Obstaculo(pygame.sprite.Sprite):
     def __init__(self, imagenes, ancho, alto, altura_suelo, velocidad):
         super().__init__()
@@ -73,7 +117,9 @@ class Obstaculo(pygame.sprite.Sprite):
             self.kill()
 
 
-# --- CLASE AVE ---
+# ==============================
+# CLASE AVE (Versión usada en main)
+# ==============================
 class Ave(pygame.sprite.Sprite):
     def __init__(self, imagenes, ancho, alto, velocidad):
         super().__init__()
@@ -98,7 +144,9 @@ class Ave(pygame.sprite.Sprite):
             self.kill()
 
 
-# --- CLASE FONDO (scroll) ---
+# ==============================
+# CLASE FONDO (scroll)
+# ==============================
 class Fondo:
     def __init__(self, imagen, velocidad):
         self.imagen = imagen

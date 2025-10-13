@@ -7,12 +7,16 @@ class Menu:
         self.ancho = ancho
         self.alto = alto
         self.record_actual = record_actual
-        self.opciones = ["Jugar", "Salir"]
+        self.opciones = ["Jugar", "Elegir Mundo", "Salir"]  # 🔥 Nueva opción agregada
         self.opcion_seleccionada = 0
+
+        # Colores
         self.color_titulo = (255, 220, 100)
         self.color_normal = (180, 180, 180)
         self.color_hover = (255, 255, 255)
         self.color_sombra = (0, 0, 0)
+
+        # Fuentes
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_opcion = pygame.font.Font(None, 60)
 
@@ -29,17 +33,22 @@ class Menu:
         clock = pygame.time.Clock()
         while True:
             self.pantalla.fill((25, 25, 30))
+
+            # --- TÍTULO ---
             self.dibujar_texto("Dino Perro / Gato", self.fuente_titulo, self.color_titulo,
                                self.ancho // 2, 120, sombra=True)
 
+            # --- OPCIONES DEL MENÚ ---
             for i, opcion in enumerate(self.opciones):
                 color = self.color_hover if i == self.opcion_seleccionada else self.color_normal
                 y = self.alto // 2 + i * 100
                 self.dibujar_texto(opcion, self.fuente_opcion, color, self.ancho // 2, y, sombra=True)
 
+            # --- RECORD ---
             self.dibujar_texto(f"Record: {self.record_actual}", pygame.font.Font(None, 40),
                                (200, 200, 200), self.ancho // 2, self.alto - 60)
 
+            # --- EVENTOS ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -50,9 +59,14 @@ class Menu:
                     elif event.key == pygame.K_DOWN:
                         self.opcion_seleccionada = (self.opcion_seleccionada + 1) % len(self.opciones)
                     elif event.key == pygame.K_RETURN:
-                        if self.opciones[self.opcion_seleccionada] == "Jugar":
+                        # --- NUEVA LÓGICA ---
+                        seleccion = self.opciones[self.opcion_seleccionada]
+
+                        if seleccion == "Jugar":
                             return "jugar"
-                        elif self.opciones[self.opcion_seleccionada] == "Salir":
+                        elif seleccion == "Elegir Mundo":
+                            return "mundo"  # 🔥 Nuevo valor que tu main puede usar para abrir seleccion_mundo
+                        elif seleccion == "Salir":
                             pygame.quit()
                             sys.exit()
 
