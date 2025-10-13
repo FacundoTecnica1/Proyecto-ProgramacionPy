@@ -3,19 +3,19 @@ import random
 import sys
 import os
 
-from game_objects import Perro, Obstaculo, Fondo
+from game_objects import Perro, Obstaculo, Fondo, Ave
+from seleccion_personaje import SeleccionPersonaje
 from utils import mostrar_texto
 from menu import Menu
 
-# ===================== INICIALIZACIÓN =====================
 pygame.init()
 pygame.mixer.init()
 
-ANCHO = 1000
-ALTO = 600
+# --- CONFIGURACIÓN ---
+ANCHO, ALTO = 800, 700
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Dino Perro 🐶")
+pygame.display.set_caption("Dino Perro 🐶 / 🐱")
 
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
 
@@ -23,145 +23,151 @@ BLANCO = (255, 255, 255)
 COLOR_ESPACIO_FONDO = (30, 30, 35)
 ALTURA_SUELO = 30
 
-# ===================== CARGA PERSONAJE =====================
-def cargar_personaje(tipo):
-    run_imgs = []
-    i = 1
-    while True:
-        ruta_run = os.path.join(RUTA_BASE, f"{tipo}_run{i}.png")
-        if not os.path.exists(ruta_run):
-            break
-        run_imgs.append(pygame.image.load(ruta_run).convert_alpha())
-        i += 1
+# --- CARGA DE IMÁGENES ---
+def cargar_imagen(nombre):
+    return pygame.image.load(os.path.join(RUTA_BASE, nombre)).convert_alpha()
 
-    if not run_imgs:
-        raise FileNotFoundError(f"No hay imágenes de corrida para '{tipo}' en {RUTA_BASE}")
+imagenes = {
+    "perro_run": [cargar_imagen(f"perro_run{i}.png") for i in range(1, 5)],
+    "perro_jump": cargar_imagen("perro_jump.png"),
+    "perro_air": cargar_imagen("perro_air.png"),
+    "gato_run": [cargar_imagen(f"gato_run{i}.png") for i in range(1, 5)],
+    "gato_jump": cargar_imagen("gato_jump.png"),
+    "gato_air": cargar_imagen("gato_air.png"),
+    "cactus": [cargar_imagen(f"cactus{i}.png") for i in range(1, 4)],
+    "ave": [cargar_imagen(f"ave{i}.png") for i in range(1, 4)],
+    "fondo": pygame.image.load(os.path.join(RUTA_BASE, "fondo.png")).convert(),
+    "luna": cargar_imagen("luna.png"),
+    "game_over": cargar_imagen("game_over.png"),
+}
 
-    salto = pygame.image.load(os.path.join(RUTA_BASE, f"{tipo}_jump.png")).convert_alpha()
-    aire = pygame.image.load(os.path.join(RUTA_BASE, f"{tipo}_air.png")).convert_alpha()
+imagenes["fondo"] = pygame.transform.scale(imagenes["fondo"], (ANCHO, ALTO))
+luna_img = pygame.transform.scale(imagenes["luna"], (75, 75))
 
-    run_imgs = [pygame.transform.scale(img, (150, 150)) for img in run_imgs]
-    salto = pygame.transform.scale(salto, (150, 150))
-    aire = pygame.transform.scale(aire, (150, 150))
-    return run_imgs, salto, aire
+# --- ESCALAS ---
+def escalar_lista(lista, w, h):
+    return [pygame.transform.scale(img, (w, h)) for img in lista]
 
-# ===================== CARGA ESCENARIO =====================
-try:
-    imagenes = {
-        'cactus': [
-            pygame.image.load(os.path.join(RUTA_BASE, "cactus1.png")).convert_alpha(),
-            pygame.image.load(os.path.join(RUTA_BASE, "cactus2.png")).convert_alpha(),
-            pygame.image.load(os.path.join(RUTA_BASE, "cactus3.png")).convert_alpha()
-        ],
-        'fondo_completo': pygame.image.load(os.path.join(RUTA_BASE, "fondo.png")).convert(),
-        'game_over': pygame.image.load(os.path.join(RUTA_BASE, "game_over.png")).convert_alpha(),
-        'luna': pygame.image.load(os.path.join(RUTA_BASE, "luna.png")).convert_alpha()
-    }
-except pygame.error as e:
-    print(f"Error al cargar imágenes: {e}")
+perro_run = escalar_lista(imagenes["perro_run"], 150, 150)
+gato_run = escalar_lista(imagenes["gato_run"], 150, 150)
+perro_jump = pygame.transform.scale(imagenes["perro_jump"], (150, 150))
+perro_air = pygame.transform.scale(imagenes["perro_air"], (150, 150))
+gato_jump = pygame.transform.scale(imagenes["gato_jump"], (150, 150))
+gato_air = pygame.transform.scale(imagenes["gato_air"], (150, 150))
+cactus_imgs = escalar_lista(imagenes["cactus"], 110, 140)
+cactus_small = escalar_lista(imagenes["cactus"], 82, 105)
+ave_imgs = escalar_lista(imagenes["ave"], 100, 80)
+
+# --- MENU PRINCIPAL ---
+menu = Menu(VENTANA, ANCHO, ALTO, 0)
+if menu.mostrar() != "jugar":
     pygame.quit()
     sys.exit()
 
-imagenes['fondo_completo'] = pygame.transform.scale(imagenes['fondo_completo'], (ANCHO, ALTO))
-cactus_imgs = [pygame.transform.scale(img, (110, 140)) for img in imagenes['cactus']]
-luna_img = pygame.transform.scale(imagenes['luna'], (75, 75))
+# --- SELECCIÓN DE PERSONAJE ---
+selector = SeleccionPersonaje(VENTANA, ANCHO, ALTO)
+personaje = selector.mostrar()  # devuelve "perro" o "gato"
 
-# ===================== LOOP DE JUEGO =====================
-def jugar(personaje, record):
-    imagenes_corriendo, imagen_salto, imagen_aire = cargar_personaje(personaje)
-    jugador = Perro(imagenes_corriendo, imagen_salto, imagen_aire, ANCHO, ALTO, ALTURA_SUELO)
-    fondo_completo = Fondo(imagenes['fondo_completo'], 0.5)
-    obstaculos = pygame.sprite.Group()
+# --- CREAR JUGADOR ---
+if personaje == "gato":
+    jugador = Perro(gato_run, gato_jump, gato_air, ANCHO, ALTO, ALTURA_SUELO)
+else:
+    jugador = Perro(perro_run, perro_jump, perro_air, ANCHO, ALTO, ALTURA_SUELO)
 
-    puntaje = 0.0
-    velocidad_juego = 5.5
-    tiempo_ultimo_obstaculo = pygame.time.get_ticks()
-    intervalo_proximo_cactus = random.randint(1000, 3000)
-    juego_activo = True
-    reloj = pygame.time.Clock()
+fondo = Fondo(imagenes["fondo"], 0.5)
+obstaculos = pygame.sprite.Group()
+aves = pygame.sprite.Group()
 
-    while True:
-        dt = reloj.tick(FPS)
+# --- VARIABLES ---
+puntaje = 0
+record = 0
+juego_activo = True
+velocidad_juego = 5.5
+reloj = pygame.time.Clock()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+tiempo_ultimo_obstaculo = pygame.time.get_ticks()
+intervalo_cactus = random.randint(1000, 3000)
+tiempo_ultima_ave = pygame.time.get_ticks()
+intervalo_ave = random.randint(4000, 8000)
 
-            if juego_activo:
-                jugador.manejar_salto(event)
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    jugador.reiniciar(ALTO, ALTURA_SUELO)
-                    obstaculos.empty()
-                    puntaje = 0.0
-                    juego_activo = True
-                    velocidad_juego = 5.5
-                    tiempo_ultimo_obstaculo = pygame.time.get_ticks()
-                    intervalo_proximo_cactus = random.randint(1000, 3000)
+CHANCE_DOBLE_CACTUS = 0.5
+CHANCE_SEGUNDO_CACTUS_PEQUENO = 0.9
+SEPARACION_MIN = 60
+SEPARACION_MAX = 100
 
-                elif event.key == pygame.K_ESCAPE:
-                    return record
-
-        # ===================== ACTUALIZACIÓN =====================
-        if juego_activo:
-            fondo_completo.actualizar(velocidad_juego)
-            jugador.actualizar(dt)
-            obstaculos.update()
-
-            tiempo_actual = pygame.time.get_ticks()
-            if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_proximo_cactus:
-                obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
-                tiempo_ultimo_obstaculo = tiempo_actual
-                intervalo_proximo_cactus = random.randint(1000, 3000)
-
-            if pygame.sprite.spritecollide(jugador, obstaculos, False, pygame.sprite.collide_mask):
-                juego_activo = False
-                if puntaje > record:
-                    record = int(puntaje)
-
-            puntaje += 0.1
-            if int(puntaje) % 100 == 0 and velocidad_juego < 15:
-                velocidad_juego += 0.5
-
-        # ===================== DIBUJADO =====================
-        VENTANA.fill(COLOR_ESPACIO_FONDO)
-        fondo_completo.dibujar(VENTANA)
-        obstaculos.draw(VENTANA)
-        jugador.dibujar(VENTANA)
-        VENTANA.blit(luna_img, luna_img.get_rect(topright=(ANCHO - 20, 20)))
-
-        mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10, BLANCO, VENTANA)
-        mostrar_texto(f"Record: {record}", ANCHO - 150, 10, BLANCO, VENTANA)
-        mostrar_texto(f"Personaje: {personaje.capitalize()}", ANCHO // 2, 10, BLANCO, VENTANA, centrado=True)
-
-        if not juego_activo:
-            game_over_rect = imagenes['game_over'].get_rect(center=(ANCHO // 2, ALTO // 2 - 30))
-            VENTANA.blit(imagenes['game_over'], game_over_rect)
-            mostrar_texto("Presiona ESPACIO para reiniciar", ANCHO // 2, ALTO // 2 + 90, BLANCO, VENTANA, centrado=True)
-            mostrar_texto("Presiona ESC para volver al menú", ANCHO // 2, ALTO // 2 + 140, BLANCO, VENTANA, centrado=True)
-
-        pygame.display.flip()
-
-# ===================== MAIN LOOP =====================
-def main():
-    record = 0
-    personaje = "perro"
-    menu = Menu(VENTANA, ANCHO, ALTO, record)
-
-    while True:
-        accion, personaje = menu.mostrar()
-
-        if accion == "jugar":
-            record = jugar(personaje, record)
-            menu.record_actual = record
-        elif accion == "record":
-            mostrar_texto(f"Récord actual: {record}", ANCHO // 2, ALTO // 2, BLANCO, VENTANA, centrado=True)
-            pygame.display.flip()
-            pygame.time.wait(1500)
-        elif accion == "salir":
+# --- LOOP PRINCIPAL ---
+while True:
+    dt = reloj.tick(FPS)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if juego_activo:
+            jugador.manejar_salto(event)
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                jugador.reiniciar(ALTO, ALTURA_SUELO)
+                obstaculos.empty()
+                aves.empty()
+                puntaje = 0
+                velocidad_juego = 5.5
+                juego_activo = True
+                tiempo_ultimo_obstaculo = pygame.time.get_ticks()
+                tiempo_ultima_ave = pygame.time.get_ticks()
+            elif event.key == pygame.K_ESCAPE:
+                menu.record_actual = record
+                if menu.mostrar() != "jugar":
+                    pygame.quit()
+                    sys.exit()
 
-if __name__ == "__main__":
-    main()
+    if juego_activo:
+        fondo.actualizar(velocidad_juego)
+        jugador.actualizar(dt)
+        obstaculos.update()
+        aves.update()
+
+        tiempo_actual = pygame.time.get_ticks()
+
+        # --- AVE ---
+        if tiempo_actual - tiempo_ultima_ave > intervalo_ave:
+            aves.add(Ave(ave_imgs, ANCHO, ALTO, velocidad_juego))
+            tiempo_ultima_ave = tiempo_actual
+            intervalo_ave = random.randint(4000, 8000)
+
+        # --- CACTUS ---
+        if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_cactus:
+            obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
+            if random.random() < CHANCE_DOBLE_CACTUS:
+                cactus_extra = cactus_small if random.random() < CHANCE_SEGUNDO_CACTUS_PEQUENO else cactus_imgs
+                separacion = random.randint(SEPARACION_MIN, SEPARACION_MAX)
+                obstaculos.add(Obstaculo(cactus_extra, ANCHO + separacion, ALTO, ALTURA_SUELO, velocidad_juego))
+            tiempo_ultimo_obstaculo = tiempo_actual
+            intervalo_cactus = random.randint(1000, 3000)
+
+        # --- COLISIONES ---
+        if pygame.sprite.spritecollide(jugador, obstaculos, False, pygame.sprite.collide_mask) or \
+           pygame.sprite.spritecollide(jugador, aves, False, pygame.sprite.collide_mask):
+            juego_activo = False
+            record = max(record, int(puntaje))
+
+        # --- PUNTAJE ---
+        puntaje += 0.1
+        if int(puntaje) % 100 == 0 and velocidad_juego < 15:
+            velocidad_juego += 0.5
+
+    # --- DIBUJAR ---
+    VENTANA.fill(COLOR_ESPACIO_FONDO)
+    fondo.dibujar(VENTANA)
+    obstaculos.draw(VENTANA)
+    aves.draw(VENTANA)
+    jugador.dibujar(VENTANA)
+    VENTANA.blit(luna_img, luna_img.get_rect(topright=(ANCHO - 20, 20)))
+    mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10, BLANCO, VENTANA)
+    mostrar_texto(f"Record: {record}", ANCHO - 150, 10, BLANCO, VENTANA)
+
+    if not juego_activo:
+        VENTANA.blit(imagenes["game_over"], imagenes["game_over"].get_rect(center=(ANCHO // 2, ALTO // 2 - 30)))
+        mostrar_texto("Presiona ESPACIO para reiniciar", ANCHO // 2, ALTO // 2 + 90, BLANCO, VENTANA, centrado=True)
+        mostrar_texto("Presiona ESC para volver al menú", ANCHO // 2, ALTO // 2 + 140, BLANCO, VENTANA, centrado=True)
+
+    pygame.display.flip()

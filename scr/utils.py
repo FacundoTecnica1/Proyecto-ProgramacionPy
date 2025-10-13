@@ -1,12 +1,11 @@
 import pygame
 
-BLANCO = (255, 230, 255)
-
-def mostrar_texto(texto, x, y, color, superficie, tamaño=28, centrado=False):
-    fuente = pygame.font.SysFont("Arial", tamaño)
-    render = fuente.render(texto, True, color)
+def mostrar_texto(texto, x, y, color, pantalla, tam=30, centrado=False):
+    fuente = pygame.font.Font(None, tam)
+    superficie = fuente.render(str(texto), True, color)
+    rect = superficie.get_rect()
     if centrado:
-        render_rect = render.get_rect(center=(x, y))
-        superficie.blit(render, render_rect)
+        rect.center = (x, y)
     else:
-        superficie.blit(render, (x, y))
+        rect.topleft = (x, y)
+    pantalla.blit(superficie, rect)
