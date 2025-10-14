@@ -74,7 +74,7 @@ class SeleccionMundo:
             self.ventana.blit(overlay, (0, 0))
 
             # Título
-            self.dibujar_texto("🌍 SELECCIONAR MUNDO 🌍", self.fuente_titulo, (255, 255, 255), self.ancho // 2, 100)
+            self.dibujar_texto("SELECCIONAR MUNDO", self.fuente_titulo, (255, 255, 255), self.ancho // 2, 100)
 
             # Botones de selección
             mx, my = pygame.mouse.get_pos()
