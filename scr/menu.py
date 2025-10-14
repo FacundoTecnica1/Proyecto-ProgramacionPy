@@ -15,15 +15,14 @@ class Menu:
         # Colores y fuentes
         self.color_texto = (255, 255, 255)
         self.color_hover = (255, 230, 150)
-        self.color_sombra = (0, 0, 0, 120)  # sombra más visible
+        self.color_sombra = (0, 0, 0, 120)
         self.color_boton = (50, 50, 50)
         self.radio_boton = 20
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_opcion = pygame.font.Font(None, 55)
         self.fuente_record = pygame.font.Font(None, 40)
 
-        # Volúmenes
-        self.volumen_musica = 0.5
+        # Volumen efectos
         self.volumen_sfx = 0.5
 
         # Fondo
@@ -31,16 +30,13 @@ class Menu:
         self.fondo_img = pygame.image.load(ruta_fondo).convert()
         self.fondo_img = pygame.transform.scale(self.fondo_img, (self.ancho, self.alto))
 
-        # Botones (rects para detección)
         self.botones_rects = []
 
     def dibujar_boton(self, texto, x, y, seleccionado=False):
-        # --- Rectángulo del botón ---
-        ancho_boton, alto_boton = 350, 60  # más largo
+        ancho_boton, alto_boton = 350, 60
         rect = pygame.Rect(0, 0, ancho_boton, alto_boton)
         rect.center = (x, y)
 
-        # --- Sombra ---
         sombra_rect = rect.copy()
         sombra_rect.x += 4
         sombra_rect.y += 4
@@ -48,11 +44,9 @@ class Menu:
         pygame.draw.rect(sombra_surf, self.color_sombra, sombra_surf.get_rect(), border_radius=self.radio_boton)
         self.pantalla.blit(sombra_surf, sombra_rect.topleft)
 
-        # --- Color del botón ---
         color = self.color_hover if seleccionado else self.color_boton
         pygame.draw.rect(self.pantalla, color, rect, border_radius=self.radio_boton)
 
-        # --- Texto centrado ---
         texto_surf = self.fuente_opcion.render(texto, True, self.color_texto)
         texto_rect = texto_surf.get_rect(center=rect.center)
         self.pantalla.blit(texto_surf, texto_rect)
@@ -62,14 +56,14 @@ class Menu:
     def mostrar(self):
         clock = pygame.time.Clock()
         while True:
-            self.pantalla.blit(self.fondo_img, (0, 0))  # fondo
+            self.pantalla.blit(self.fondo_img, (0, 0))
 
-            # --- Título ---
+            # Título
             titulo_surf = self.fuente_titulo.render("Dino Perro / Gato", True, self.color_texto)
             titulo_rect = titulo_surf.get_rect(center=(self.ancho // 2, 80))
             self.pantalla.blit(titulo_surf, titulo_rect)
 
-            # --- Opciones como botones ---
+            # Botones
             self.botones_rects.clear()
             espacio_vertical = 90
             inicio_y = self.alto // 2 - ((len(self.opciones) - 1) * espacio_vertical) // 2 + 100
@@ -79,12 +73,12 @@ class Menu:
                                           seleccionado=(i == self.opcion_seleccionada))
                 self.botones_rects.append(rect)
 
-            # --- Record ---
+            # Record
             record_surf = self.fuente_record.render(f"Record: {self.record_actual}", True, self.color_texto)
-            record_rect = record_surf.get_rect(center=(self.ancho // 2, self.alto - 380))
+            record_rect = record_surf.get_rect(center=(self.ancho // 2, self.alto - 390))
             self.pantalla.blit(record_surf, record_rect)
 
-            # --- Eventos ---
+            # Eventos
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -101,10 +95,8 @@ class Menu:
                         elif seleccion == "Elegir Mundo":
                             return "mundo"
                         elif seleccion == "Sonidos":
-                            selector = SelectorSonido(self.pantalla, self.ancho, self.alto,
-                                                      self.volumen_musica, self.volumen_sfx)
-                            self.volumen_musica, self.volumen_sfx = selector.mostrar()
-                            pygame.mixer.music.set_volume(self.volumen_musica)
+                            selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx)
+                            self.volumen_sfx = selector.mostrar()
                         elif seleccion == "Salir":
                             pygame.quit()
                             sys.exit()
