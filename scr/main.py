@@ -13,10 +13,10 @@ pygame.init()
 pygame.mixer.init()
 
 # --- CONFIGURACIÓN ---
-ANCHO, ALTO = 800, 490
+ANCHO, ALTO = 800, 600
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Dino Perro 🐶 / 🐱")
+pygame.display.set_caption("Dino")
 
 # --- RUTA DE IMÁGENES ---
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
@@ -74,18 +74,30 @@ except pygame.error as e:
 def escalar_lista(lista, w, h):
     return [pygame.transform.scale(img, (w, h)) for img in lista]
 
+def escalar_y_cuadrar(img, size):
+    w, h = img.get_size()
+    scale = size / max(w, h)
+    new_w, new_h = int(w * scale), int(h * scale)
+    img_scaled = pygame.transform.smoothscale(img, (new_w, new_h))
+    fondo = pygame.Surface((size, size), pygame.SRCALPHA)
+    fondo.blit(img_scaled, ((size - new_w) // 2, (size - new_h) // 2))
+    return fondo
+
+def escalar_lista_cuadrada(lista, size):
+    return [escalar_y_cuadrar(img, size) for img in lista]
+
 imagenes['fondo'] = pygame.transform.scale(imagenes['fondo'], (ANCHO, ALTO))
 luna_img = pygame.transform.scale(imagenes['luna'], (75, 75))
 
-perro_run = escalar_lista(imagenes["perro_run"], 150, 150)
-gato_run = escalar_lista(imagenes["gato_run"], 150, 150)
-perro_jump = pygame.transform.scale(imagenes["perro_jump"], (150, 150))
-perro_air = pygame.transform.scale(imagenes["perro_air"], (150, 150))
-gato_jump = pygame.transform.scale(imagenes["gato_jump"], (150, 150))
-gato_air = pygame.transform.scale(imagenes["gato_air"], (150, 150))
-cactus_imgs = escalar_lista(imagenes["cactus"], 110, 140)
-cactus_small = escalar_lista(imagenes["cactus"], 82, 105)
-ave_imgs = escalar_lista(imagenes["ave"], 100, 80)
+perro_run = escalar_lista_cuadrada(imagenes["perro_run"], 150)
+gato_run = escalar_lista_cuadrada(imagenes["gato_run"], 150)
+perro_jump = escalar_y_cuadrar(imagenes["perro_jump"], 150)
+perro_air = escalar_y_cuadrar(imagenes["perro_air"], 150)
+gato_jump = escalar_y_cuadrar(imagenes["gato_jump"], 150)
+gato_air = escalar_y_cuadrar(imagenes["gato_air"], 150)
+cactus_imgs = escalar_lista_cuadrada(imagenes["cactus"], 140)
+cactus_small = escalar_lista_cuadrada(imagenes["cactus"], 105)
+ave_imgs = escalar_lista_cuadrada(imagenes["ave"], 100)
 
 # --- MENÚ PRINCIPAL ---
 menu = Menu(VENTANA, ANCHO, ALTO, 0)
