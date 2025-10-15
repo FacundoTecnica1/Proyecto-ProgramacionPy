@@ -30,6 +30,21 @@ ALTURA_SUELO = 30
 def cargar_imagen(nombre):
     return pygame.image.load(os.path.join(RUTA_BASE, nombre)).convert_alpha()
 
+# --- FUNCIÓN PARA ESCALAR LISTAS DE IMÁGENES ---
+def escalar_lista(lista, w, h):
+    return [pygame.transform.smoothscale(img, (w, h)) for img in lista]
+
+# --- FUNCIÓN PARA ESCALAR Y CENTRAR EN CUADRADO ---
+def escalar_y_cuadrar(img, size):
+    """Escala una imagen manteniendo el aspecto y la centra en un lienzo cuadrado."""
+    w, h = img.get_size()
+    factor = min(size / w, size / h)
+    new_w, new_h = int(w * factor), int(h * factor)
+    img_escalada = pygame.transform.smoothscale(img, (new_w, new_h))
+    lienzo = pygame.Surface((size, size), pygame.SRCALPHA)
+    lienzo.blit(img_escalada, ((size - new_w) // 2, (size - new_h) // 2))
+    return lienzo
+
 # --- CARGA BASE DE IMÁGENES ---
 try:
     imagenes = {
@@ -71,18 +86,15 @@ except pygame.error as e:
     sys.exit()
 
 # --- ESCALAS ---
-def escalar_lista(lista, w, h):
-    return [pygame.transform.scale(img, (w, h)) for img in lista]
-
 imagenes['fondo'] = pygame.transform.scale(imagenes['fondo'], (ANCHO, ALTO))
 luna_img = pygame.transform.scale(imagenes['luna'], (75, 75))
 
-perro_run = escalar_lista(imagenes["perro_run"], 150, 150)
-gato_run = escalar_lista(imagenes["gato_run"], 150, 150)
-perro_jump = pygame.transform.scale(imagenes["perro_jump"], (150, 150))
-perro_air = pygame.transform.scale(imagenes["perro_air"], (150, 150))
-gato_jump = pygame.transform.scale(imagenes["gato_jump"], (150, 150))
-gato_air = pygame.transform.scale(imagenes["gato_air"], (150, 150))
+perro_run = [escalar_y_cuadrar(img, 150) for img in imagenes["perro_run"]]
+gato_run = [escalar_y_cuadrar(img, 150) for img in imagenes["gato_run"]]
+perro_jump = escalar_y_cuadrar(imagenes["perro_jump"], 150)
+perro_air = escalar_y_cuadrar(imagenes["perro_air"], 150)
+gato_jump = escalar_y_cuadrar(imagenes["gato_jump"], 150)
+gato_air = escalar_y_cuadrar(imagenes["gato_air"], 150)
 cactus_imgs = escalar_lista(imagenes["cactus"], 110, 140)
 cactus_small = escalar_lista(imagenes["cactus"], 82, 105)
 ave_imgs = escalar_lista(imagenes["ave"], 100, 80)
