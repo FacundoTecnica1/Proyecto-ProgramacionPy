@@ -199,10 +199,16 @@ while True:
             pygame.quit()
             sys.exit()
 
+        # Si el juego está activo, dejamos que el jugador maneje el salto
+        # y reproducimos el sonido de salto cuando se detecta KEYDOWN de SPACE.
+        # Esto evita que la tecla SPACE afecte al volumen.
         if juego_activo:
             jugador.manejar_salto(event)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                sonido_salto.play()
+                try:
+                    sonido_salto.play()
+                except Exception:
+                    pass
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 jugador.reiniciar(ALTO, ALTURA_SUELO)
