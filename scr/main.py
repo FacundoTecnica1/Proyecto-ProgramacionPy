@@ -16,7 +16,7 @@ pygame.mixer.init()
 ANCHO, ALTO = 800, 550
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Dino Perro 🐶 / 🐱")
+pygame.display.set_caption("Dino Perro")
 
 # --- RUTA DE IMÁGENES ---
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
@@ -157,6 +157,8 @@ if personaje == "gato":
     jugador = Perro(gato_run, gato_jump, gato_air, ANCHO, ALTO, ALTURA_SUELO)
 else:
     jugador = Perro(perro_run, perro_jump, perro_air, ANCHO, ALTO, ALTURA_SUELO)
+# Asegurar estado inicial del jugador
+jugador.reiniciar(ALTO, ALTURA_SUELO)
 
 # --- OBJETOS DEL JUEGO ---
 fondo = Fondo(imagenes["fondo"], 0.5)
@@ -166,8 +168,12 @@ aves = pygame.sprite.Group()
 puntaje = 0
 record = 0
 juego_activo = True
-velocidad_juego = 5.5
+velocidad_juego = 7.5  # aumentado +2
 reloj = pygame.time.Clock()
+
+# --- DASH CONFIG ---
+DASH_CACTUS_MULTIPLIER = 2.2  # factor por el cuál los cactus se aceleran durante dash
+prev_dashing = False
 
 tiempo_ultimo_obstaculo = pygame.time.get_ticks()
 intervalo_cactus = random.randint(1000, 3000)
@@ -204,6 +210,12 @@ while True:
         # Esto evita que la tecla SPACE afecte al volumen.
         if juego_activo:
             jugador.manejar_salto(event)
+            # Manejar agacharse con flecha abajo
+            try:
+                jugador.manejar_agacharse(event)
+            except Exception:
+                # En caso de que el jugador no implemente el método, ignorar
+                pass
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 try:
                     sonido_salto.play()
@@ -231,10 +243,44 @@ while True:
                     sys.exit()
 
     if juego_activo:
-        fondo.actualizar(velocidad_juego)
+        # Calcular si el jugador está en dash para aplicar efectos en el mundo
+        try:
+            dashing_now = getattr(jugador, 'is_dashing', False)
+        except Exception:
+            dashing_now = False
+        # Acelerar fondo durante dash para dar sensación de que el mundo pasa rápido
+        fondo.actualizar(velocidad_juego * (DASH_CACTUS_MULTIPLIER if dashing_now else 1))
         jugador.actualizar(dt)
         obstaculos.update()
         aves.update()
+        if dashing_now and not prev_dashing:
+            # activar multiplicador
+            for obs in obstaculos:
+                try:
+                    obs.velocidad = obs._base_vel * DASH_CACTUS_MULTIPLIER
+                except Exception:
+                    pass
+            # también acelerar aves
+            for a in aves:
+                try:
+                    a.velocidad = a._base_vel * DASH_CACTUS_MULTIPLIER
+                except Exception:
+                    pass
+            prev_dashing = True
+        elif not dashing_now and prev_dashing:
+            # restaurar velocidades
+            for obs in obstaculos:
+                try:
+                    obs.velocidad = obs._base_vel
+                except Exception:
+                    pass
+            # restaurar aves
+            for a in aves:
+                try:
+                    a.velocidad = a._base_vel
+                except Exception:
+                    pass
+            prev_dashing = False
 
         tiempo_actual = pygame.time.get_ticks()
 
@@ -242,11 +288,31 @@ while True:
         if tiempo_actual - tiempo_ultima_ave > intervalo_ave:
             aves.add(Ave(ave_imgs, ANCHO, ALTO, velocidad_juego))
             tiempo_ultima_ave = tiempo_actual
+            # Establecer próximo intervalo de aves (en ms). Rango por defecto: 4-8s
             intervalo_ave = random.randint(4000, 8000)
 
         # --- CACTUS ---
         if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_cactus:
-            obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
+            # Crear cactus con velocidad base; si estamos en dash, solo ajustar
+            # su velocidad temporalmente para no cambiar _base_vel.
+            nuevo = Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego)
+            if dashing_now:
+                try:
+                    nuevo.velocidad = nuevo._base_vel * DASH_CACTUS_MULTIPLIER
+                except Exception:
+                    pass
+            obstaculos.add(nuevo)
+            # Evitar que se genere un ave exactamente al mismo tiempo que un cactus.
+            # Pero no reiniciamos siempre el temporizador (porque los cactus aparecen
+            # con mayor frecuencia y eso podría suprimir las aves por completo).
+            tiempo_actual_local = pygame.time.get_ticks()
+            tiempo_desde_ultima_ave = tiempo_actual_local - tiempo_ultima_ave
+            tiempo_restante_ave = intervalo_ave - tiempo_desde_ultima_ave
+            # Si la próxima ave iba a generarse en menos de 1s, posponemos su generación
+            # reseteando el temporizador; en caso contrario no tocamos nada.
+            if tiempo_restante_ave is not None and tiempo_restante_ave < 1000:
+                tiempo_ultima_ave = tiempo_actual_local
+                intervalo_ave = random.randint(4000, 8000)
             if random.random() < CHANCE_DOBLE_CACTUS:
                 cactus_extra = cactus_small if random.random() < CHANCE_SEGUNDO_CACTUS_PEQUENO else cactus_imgs
                 separacion = random.randint(SEPARACION_MIN, SEPARACION_MAX)
@@ -264,7 +330,7 @@ while True:
         # --- PUNTAJE ---
         puntaje += 0.1
         if int(puntaje) % 100 == 0 and velocidad_juego < 15:
-            velocidad_juego += 0.5
+            velocidad_juego += 0.25
 
     # --- DIBUJADO ---
     VENTANA.fill(COLOR_ESPACIO_FONDO)
