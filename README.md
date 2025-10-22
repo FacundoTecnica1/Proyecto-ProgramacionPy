@@ -34,7 +34,7 @@ Opcional:
 1. Clonar el repositorio
 
 ```powershell
-git clone <URL-del-repositorio>
+git clone https://github.com/FacundoTecnica1/Proyecto-ProgramacionPy.git
 cd Proyecto-ProgramacionPy
 ```
 
@@ -72,7 +72,7 @@ Consejos de prueba:
 Proyecto-ProgramacionPy/
 │
 ├── scr/                # Código fuente del juego
-│   ├── main.py         # Archivo principal del juego
+│   ├── main.py         # Algoritmo principal del juego
 │   ├── game_objects.py # Clases de jugador, obstáculos, aves y fondo
 │   └── utils.py        # Utilidades
 │
