@@ -9,7 +9,7 @@ class Menu:
         self.ancho = ancho
         self.alto = alto
         self.record_actual = record_actual
-        self.opciones = ["Jugar", "Elegir Mundo", "Sonidos", "Salir"]
+        self.opciones = ["Jugar", "Elegir Nombre", "Elegir Mundo", "Sonidos", "Ver Rankings", "Salir"]
         self.opcion_seleccionada = 0
 
         # Colores y fuentes
@@ -31,6 +31,8 @@ class Menu:
         self.fondo_img = pygame.transform.scale(self.fondo_img, (self.ancho, self.alto))
 
         self.botones_rects = []
+        self.nombre_actual = None
+        self.id_usuario_actual = None
 
     def dibujar_boton(self, texto, x, y, seleccionado=False):
         ancho_boton, alto_boton = 350, 60
@@ -73,10 +75,16 @@ class Menu:
                                           seleccionado=(i == self.opcion_seleccionada))
                 self.botones_rects.append(rect)
 
-            # Record
+            # Record actual
             record_surf = self.fuente_record.render(f"Record: {self.record_actual}", True, self.color_texto)
             record_rect = record_surf.get_rect(center=(self.ancho // 2, self.alto - 390))
             self.pantalla.blit(record_surf, record_rect)
+
+            # Nombre actual (si existe)
+            if self.nombre_actual:
+                nombre_surf = self.fuente_record.render(f"Jugador: {self.nombre_actual}", True, self.color_texto)
+                nombre_rect = nombre_surf.get_rect(center=(self.ancho // 2, self.alto - 350))
+                self.pantalla.blit(nombre_surf, nombre_rect)
 
             # Eventos
             for event in pygame.event.get():
@@ -92,11 +100,21 @@ class Menu:
                         seleccion = self.opciones[self.opcion_seleccionada]
                         if seleccion == "Jugar":
                             return "jugar"
+                        elif seleccion == "Elegir Nombre":
+                            from elegir_nombre import ElegirNombre
+                            elegir_nombre = ElegirNombre(self.pantalla, self.ancho, self.alto)
+                            nombre, id_usuario = elegir_nombre.mostrar()
+                            self.nombre_actual = nombre
+                            self.id_usuario_actual = id_usuario
                         elif seleccion == "Elegir Mundo":
                             return "mundo"
                         elif seleccion == "Sonidos":
                             selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx)
                             self.volumen_sfx = selector.mostrar()
+                        elif seleccion == "Ver Rankings":
+                            from mostrar_ranking import MostrarRanking
+                            pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto)
+                            pantalla_ranking.mostrar()
                         elif seleccion == "Salir":
                             pygame.quit()
                             sys.exit()
