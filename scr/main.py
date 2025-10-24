@@ -13,10 +13,10 @@ pygame.init()
 pygame.mixer.init()
 
 # --- CONFIGURACIÓN ---
-ANCHO, ALTO = 800, 550
+ANCHO, ALTO = 850, 670
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Dino Perro")
+pygame.display.set_caption("AQUILES")
 
 # --- RUTA DE IMÁGENES ---
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")

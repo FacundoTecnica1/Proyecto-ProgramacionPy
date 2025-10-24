@@ -9,7 +9,14 @@ class Menu:
         self.ancho = ancho
         self.alto = alto
         self.record_actual = record_actual
-        self.opciones = ["Jugar", "Elegir Nombre", "Elegir Mundo", "Sonidos", "Ver Rankings", "Salir"]
+        self.opciones = [
+            "Jugar",
+            "Elegir Nombre",
+            "Elegir Mundo",
+            "Sonidos",
+            "Ver Rankings",
+            "Salir"
+        ]
         self.opcion_seleccionada = 0
 
         # Colores y fuentes
@@ -39,6 +46,7 @@ class Menu:
         rect = pygame.Rect(0, 0, ancho_boton, alto_boton)
         rect.center = (x, y)
 
+        # Sombra del botón
         sombra_rect = rect.copy()
         sombra_rect.x += 4
         sombra_rect.y += 4
@@ -46,9 +54,11 @@ class Menu:
         pygame.draw.rect(sombra_surf, self.color_sombra, sombra_surf.get_rect(), border_radius=self.radio_boton)
         self.pantalla.blit(sombra_surf, sombra_rect.topleft)
 
+        # Botón principal
         color = self.color_hover if seleccionado else self.color_boton
         pygame.draw.rect(self.pantalla, color, rect, border_radius=self.radio_boton)
 
+        # Texto
         texto_surf = self.fuente_opcion.render(texto, True, self.color_texto)
         texto_rect = texto_surf.get_rect(center=rect.center)
         self.pantalla.blit(texto_surf, texto_rect)
@@ -60,33 +70,43 @@ class Menu:
         while True:
             self.pantalla.blit(self.fondo_img, (0, 0))
 
-            # Título
-            titulo_surf = self.fuente_titulo.render("Dino Perro / Gato", True, self.color_texto)
-            titulo_rect = titulo_surf.get_rect(center=(self.ancho // 2, 80))
+            # --- Título ---
+            titulo_surf = self.fuente_titulo.render("Dino", True, self.color_texto)
+            titulo_rect = titulo_surf.get_rect(center=(self.ancho // 2, 100))
             self.pantalla.blit(titulo_surf, titulo_rect)
 
-            # Botones
+            # --- Distribución en 2 columnas ---
             self.botones_rects.clear()
-            espacio_vertical = 90
-            inicio_y = self.alto // 2 - ((len(self.opciones) - 1) * espacio_vertical) // 2 + 100
+            espacio_vertical = 100
+            inicio_y = self.alto // 2 - 150
+
+            columna_izq_x = self.ancho // 2 - 200
+            columna_der_x = self.ancho // 2 + 200
+
             for i, opcion in enumerate(self.opciones):
-                y = inicio_y + i * espacio_vertical
-                rect = self.dibujar_boton(opcion, self.ancho // 2, y,
-                                          seleccionado=(i == self.opcion_seleccionada))
+                # Las 3 primeras a la izquierda, las otras 3 a la derecha
+                if i < 3:
+                    x = columna_izq_x
+                    y = inicio_y + i * espacio_vertical
+                else:
+                    x = columna_der_x
+                    y = inicio_y + (i - 3) * espacio_vertical
+
+                rect = self.dibujar_boton(opcion, x, y, seleccionado=(i == self.opcion_seleccionada))
                 self.botones_rects.append(rect)
 
             # Record actual
             record_surf = self.fuente_record.render(f"Record: {self.record_actual}", True, self.color_texto)
-            record_rect = record_surf.get_rect(center=(self.ancho // 2, self.alto - 390))
+            record_rect = record_surf.get_rect(center=(self.ancho // 2, self.alto - 120))
             self.pantalla.blit(record_surf, record_rect)
 
             # Nombre actual (si existe)
             if self.nombre_actual:
                 nombre_surf = self.fuente_record.render(f"Jugador: {self.nombre_actual}", True, self.color_texto)
-                nombre_rect = nombre_surf.get_rect(center=(self.ancho // 2, self.alto - 350))
+                nombre_rect = nombre_surf.get_rect(center=(self.ancho // 2, self.alto - 80))
                 self.pantalla.blit(nombre_surf, nombre_rect)
 
-            # Eventos
+            # --- Eventos ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
