@@ -157,7 +157,6 @@ if personaje == "gato":
     jugador = Perro(gato_run, gato_jump, gato_air, ANCHO, ALTO, ALTURA_SUELO)
 else:
     jugador = Perro(perro_run, perro_jump, perro_air, ANCHO, ALTO, ALTURA_SUELO)
-# Asegurar estado inicial del jugador
 jugador.reiniciar(ALTO, ALTURA_SUELO)
 
 # --- OBJETOS DEL JUEGO ---
@@ -168,11 +167,11 @@ aves = pygame.sprite.Group()
 puntaje = 0
 record = 0
 juego_activo = True
-velocidad_juego = 7.5  # aumentado +2
+velocidad_juego = 7.5
 reloj = pygame.time.Clock()
 
 # --- DASH CONFIG ---
-DASH_CACTUS_MULTIPLIER = 2.2  # factor por el cuál los cactus se aceleran durante dash
+DASH_CACTUS_MULTIPLIER = 2.2
 prev_dashing = False
 
 tiempo_ultimo_obstaculo = pygame.time.get_ticks()
@@ -190,11 +189,9 @@ sonido_salto = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoSalto.mp3"
 sonido_gameover = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoGameOver.mp3"))
 
 def actualizar_volumen_sfx():
-    """Actualiza el volumen de los efectos según la configuración del menú."""
     sonido_salto.set_volume(menu.volumen_sfx)
     sonido_gameover.set_volume(menu.volumen_sfx)
 
-# Inicializar volumen al cargar
 actualizar_volumen_sfx()
 
 # --- BUCLE PRINCIPAL ---
@@ -205,16 +202,11 @@ while True:
             pygame.quit()
             sys.exit()
 
-        # Si el juego está activo, dejamos que el jugador maneje el salto
-        # y reproducimos el sonido de salto cuando se detecta KEYDOWN de SPACE.
-        # Esto evita que la tecla SPACE afecte al volumen.
         if juego_activo:
             jugador.manejar_salto(event)
-            # Manejar agacharse con flecha abajo
             try:
                 jugador.manejar_agacharse(event)
             except Exception:
-                # En caso de que el jugador no implemente el método, ignorar
                 pass
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 try:
@@ -236,31 +228,28 @@ while True:
             elif event.key == pygame.K_ESCAPE:
                 menu.record_actual = record
                 opcion = menu.mostrar()
-                # Actualizar volumen después de salir del menú
                 actualizar_volumen_sfx()
                 if opcion != "jugar":
                     pygame.quit()
                     sys.exit()
 
     if juego_activo:
-        # Calcular si el jugador está en dash para aplicar efectos en el mundo
         try:
             dashing_now = getattr(jugador, 'is_dashing', False)
         except Exception:
             dashing_now = False
-        # Acelerar fondo durante dash para dar sensación de que el mundo pasa rápido
+
         fondo.actualizar(velocidad_juego * (DASH_CACTUS_MULTIPLIER if dashing_now else 1))
         jugador.actualizar(dt)
         obstaculos.update()
         aves.update()
+
         if dashing_now and not prev_dashing:
-            # activar multiplicador
             for obs in obstaculos:
                 try:
                     obs.velocidad = obs._base_vel * DASH_CACTUS_MULTIPLIER
                 except Exception:
                     pass
-            # también acelerar aves
             for a in aves:
                 try:
                     a.velocidad = a._base_vel * DASH_CACTUS_MULTIPLIER
@@ -268,13 +257,11 @@ while True:
                     pass
             prev_dashing = True
         elif not dashing_now and prev_dashing:
-            # restaurar velocidades
             for obs in obstaculos:
                 try:
                     obs.velocidad = obs._base_vel
                 except Exception:
                     pass
-            # restaurar aves
             for a in aves:
                 try:
                     a.velocidad = a._base_vel
@@ -284,17 +271,12 @@ while True:
 
         tiempo_actual = pygame.time.get_ticks()
 
-        # --- AVES ---
         if tiempo_actual - tiempo_ultima_ave > intervalo_ave:
             aves.add(Ave(ave_imgs, ANCHO, ALTO, velocidad_juego))
             tiempo_ultima_ave = tiempo_actual
-            # Establecer próximo intervalo de aves (en ms). Rango por defecto: 4-8s
             intervalo_ave = random.randint(4000, 8000)
 
-        # --- CACTUS ---
         if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_cactus:
-            # Crear cactus con velocidad base; si estamos en dash, solo ajustar
-            # su velocidad temporalmente para no cambiar _base_vel.
             nuevo = Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego)
             if dashing_now:
                 try:
@@ -302,14 +284,9 @@ while True:
                 except Exception:
                     pass
             obstaculos.add(nuevo)
-            # Evitar que se genere un ave exactamente al mismo tiempo que un cactus.
-            # Pero no reiniciamos siempre el temporizador (porque los cactus aparecen
-            # con mayor frecuencia y eso podría suprimir las aves por completo).
             tiempo_actual_local = pygame.time.get_ticks()
             tiempo_desde_ultima_ave = tiempo_actual_local - tiempo_ultima_ave
             tiempo_restante_ave = intervalo_ave - tiempo_desde_ultima_ave
-            # Si la próxima ave iba a generarse en menos de 1s, posponemos su generación
-            # reseteando el temporizador; en caso contrario no tocamos nada.
             if tiempo_restante_ave is not None and tiempo_restante_ave < 1000:
                 tiempo_ultima_ave = tiempo_actual_local
                 intervalo_ave = random.randint(4000, 8000)
@@ -326,6 +303,42 @@ while True:
             juego_activo = False
             record = max(record, int(puntaje))
             sonido_gameover.play()
+
+            # === NUEVO BLOQUE: GUARDAR/ACTUALIZAR PUNTAJE ===
+            try:
+                import mysql.connector
+                conexion = mysql.connector.connect(
+                    host="localhost",
+                    user="root",
+                    password="",
+                    database="dino"
+                )
+                cursor = conexion.cursor()
+
+                if hasattr(menu, "id_usuario_actual") and menu.id_usuario_actual:
+                    id_usuario = menu.id_usuario_actual
+                    puntaje_final = int(puntaje)
+
+                    cursor.execute("SELECT Puntaje FROM ranking WHERE Id_Usuario = %s", (id_usuario,))
+                    fila = cursor.fetchone()
+
+                    if fila:
+                        puntaje_guardado = fila[0]
+                        if puntaje_final > puntaje_guardado:
+                            cursor.execute("UPDATE ranking SET Puntaje = %s WHERE Id_Usuario = %s", (puntaje_final, id_usuario))
+                            print(f"[DB] Record actualizado: {puntaje_final} pts (Usuario ID {id_usuario})")
+                    else:
+                        cursor.execute("INSERT INTO ranking (Id_Usuario, Puntaje) VALUES (%s, %s)", (id_usuario, puntaje_final))
+                        print(f"[DB] Record guardado: {puntaje_final} pts (Usuario ID {id_usuario})")
+
+                    conexion.commit()
+                else:
+                    print("[AVISO] No se guardó el puntaje: jugador sin nombre registrado.")
+
+                conexion.close()
+            except Exception as e:
+                print(f"[ERROR BD] No se pudo guardar el puntaje: {e}")
+            # === FIN BLOQUE BD ===
 
         # --- PUNTAJE ---
         puntaje += 0.1
