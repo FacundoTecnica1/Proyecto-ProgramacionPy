@@ -2,8 +2,9 @@ import pygame
 import random
 import sys
 import os
-import serial  
-import time  
+import serial  # ⬅️ IMPORTADO
+import pyautogui  # ⬅️ IMPORTADO
+import time  # ⬅️ IMPORTADO
 
 from game_objects import Perro, Obstaculo, Fondo, Ave
 from seleccion_personaje import SeleccionPersonaje
@@ -229,7 +230,7 @@ while True:
     dt = reloj.tick(FPS)
     
     # ----------------------------------------------------
-    # ⬇️ BLOQUE DE LECTURA SERIAL (SOLUCIÓN) ⬇️
+    # ⬇️ BLOQUE DE LECTURA SERIAL CORREGIDO (QUITADO EL PRINT) ⬇️
     # ----------------------------------------------------
     if globals().get('arduino_serial') is not None and globals()['arduino_serial'].is_open:
         try:
@@ -237,22 +238,19 @@ while True:
                 linea = arduino_serial.readline().decode('utf-8').strip()
                 
                 if linea == "SPACE":
-                    # 🔥 ESTA ES LA SOLUCIÓN 🔥
-                    # En lugar de usar pyautogui (que es externo y bloqueante),
-                    # creamos un evento de Pygame y lo añadimos a la cola.
-                    # El bucle principal de Pygame lo procesará como si se
-                    # hubiera presionado la tecla espacio.
+                    # 🔥 LÍNEA DE IMPRESIÓN REMOVIDA 🔥
                     
-                    # 1. Crear el evento de tecla presionada
-                    evento_salto = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)
+                    # Usamos keyDown/keyUp para asegurar que Pygame registre el evento
+                    pyautogui.keyDown('space') 
+                    time.sleep(0.01) # Presionar por 10ms
+                    pyautogui.keyUp('space')
                     
-                    # 2. Publicar el evento en la cola de Pygame
-                    pygame.event.post(evento_salto)
-                    
-                    # Ya no necesitamos pyautogui.keyDown, time.sleep, 
-                    # pyautogui.keyUp ni la llamada a sonido_salto.play() aquí.
-                    # El bucle de eventos principal (for event in pygame.event.get():)
-                    # se encargará de todo, incluyendo el sonido.
+                    # Si el juego está activo, ejecuta el sonido de salto
+                    if juego_activo:
+                        try:
+                            sonido_salto.play()
+                        except Exception:
+                            pass
                     
         except Exception as e:
             # Manejo de error de conexión/lectura (ej. Arduino desconectado)
@@ -283,7 +281,6 @@ while True:
                 pass
             
             # El sonido de salto normal se mantiene aquí
-            # (Y AHORA TAMBIÉN RECIBE EL EVENTO DEL ARDUINO)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 try:
                     sonido_salto.play()
