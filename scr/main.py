@@ -374,3 +374,4 @@ while True:
         mostrar_texto("Presiona ESC para volver al menú", ANCHO // 2, ALTO // 2 + 140, BLANCO, VENTANA, centrado=True)
 
     pygame.display.flip()
+

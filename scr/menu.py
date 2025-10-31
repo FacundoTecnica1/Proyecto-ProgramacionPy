@@ -12,7 +12,6 @@ class Menu:
         self.opciones = [
             "Jugar",
             "Elegir Mundo",
-            "Sonidos",
             "Ver Rankings",
             "Salir"
         ]
@@ -35,6 +34,17 @@ class Menu:
         ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo.png")
         self.fondo_img = pygame.image.load(ruta_fondo).convert()
         self.fondo_img = pygame.transform.scale(self.fondo_img, (self.ancho, self.alto))
+
+        # --- Icono de música ---
+        ruta_icono = os.path.join(os.path.dirname(__file__), "..", "img", "IconoMusica.png")
+        try:
+            self.icono_musica = pygame.image.load(ruta_icono).convert_alpha()
+            self.icono_musica = pygame.transform.scale(self.icono_musica, (60, 60))
+        except Exception as e:
+            print(f"No se pudo cargar IconoMusica.jpg: {e}")
+            self.icono_musica = None
+             
+        self.rect_icono_musica = pygame.Rect(self.ancho - 80, 20, 60, 60)
 
         self.botones_rects = []
         self.nombre_actual = None
@@ -74,24 +84,17 @@ class Menu:
             titulo_rect = titulo_surf.get_rect(center=(self.ancho // 2, 100))
             self.pantalla.blit(titulo_surf, titulo_rect)
 
-            # --- Distribución en 2 columnas ---
+            # --- Distribución en una sola columna ---
             self.botones_rects.clear()
             espacio_vertical = 100
-            inicio_y = self.alto // 2 - 150
-
-            columna_izq_x = self.ancho // 2 - 200
-            columna_der_x = self.ancho // 2 + 200
+            inicio_y = self.alto // 2 - 100  # posición inicial centrada
+            x_centro = self.ancho // 2
 
             for i, opcion in enumerate(self.opciones):
-                # Las 3 primeras a la izquierda, las otras 3 a la derecha
-                if i < 3:
-                    x = columna_izq_x
-                    y = inicio_y + i * espacio_vertical
-                else:
-                    x = columna_der_x
-                    y = inicio_y + (i - 3) * espacio_vertical
-
-                rect = self.dibujar_boton(opcion, x, y, seleccionado=(i == self.opcion_seleccionada))
+                if i >= 3:  # máximo 3 botones visibles
+                    break
+                y = inicio_y + i * espacio_vertical
+                rect = self.dibujar_boton(opcion, x_centro, y, seleccionado=(i == self.opcion_seleccionada))
                 self.botones_rects.append(rect)
 
             # Record actual
@@ -104,6 +107,10 @@ class Menu:
                 nombre_surf = self.fuente_record.render(f"Jugador: {self.nombre_actual}", True, self.color_texto)
                 nombre_rect = nombre_surf.get_rect(center=(self.ancho // 2, self.alto - 80))
                 self.pantalla.blit(nombre_surf, nombre_rect)
+                
+            # --- Dibujar icono de música ---
+            if self.icono_musica:
+                self.pantalla.blit(self.icono_musica, self.rect_icono_musica.topleft)
 
             # --- Eventos ---
             for event in pygame.event.get():
@@ -121,9 +128,6 @@ class Menu:
                             return "jugar"
                         elif seleccion == "Elegir Mundo":
                             return "mundo"
-                        elif seleccion == "Sonidos":
-                            selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx)
-                            self.volumen_sfx = selector.mostrar()
                         elif seleccion == "Ver Rankings":
                             from mostrar_ranking import MostrarRanking
                             pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto)
@@ -131,6 +135,11 @@ class Menu:
                         elif seleccion == "Salir":
                             pygame.quit()
                             sys.exit()
+
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if self.rect_icono_musica.collidepoint(event.pos):
+                        selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx)
+                        self.volumen_sfx = selector.mostrar()
 
             pygame.display.flip()
             clock.tick(60)
