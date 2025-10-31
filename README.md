@@ -29,28 +29,56 @@ Opcional:
 
 ---
 
-## 🚀 Instalación y Ejecución (Windows / PowerShell)
+## 🚀 Instalación Súper Fácil
 
-1. Clonar el repositorio
+### � INSTALACIÓN AUTOMÁTICA DESDE GITHUB (Recomendado)
 
-```powershell
+**¿Quieres instalar sin descargar nada manualmente? ¡Usa el instalador automático!**
+
+#### Opción 1: Instalador Independiente (Solo 1 archivo)
+1. **Descarga solo este archivo:** [`instalar_juego_dinosaurio.py`](instalar_juego_dinosaurio.py)
+2. **Ejecuta:** `python instalar_juego_dinosaurio.py`
+3. **¡Presiona el botón y espera!** ☕
+
+#### Opción 2: Desde el repositorio clonado
+1. **Clona el repo:** `git clone https://github.com/FacundoTecnica1/Proyecto-ProgramacionPy.git`
+2. **Ve a la carpeta:** `cd Proyecto-ProgramacionPy/instalador`
+3. **Ejecuta:** `DESCARGAR_DESDE_GITHUB.bat` o `python instalador_github.py`
+
+✨ **El instalador automático:**
+- 🌐 Descarga todo el proyecto automáticamente
+- 📦 Extrae los archivos
+- 🚀 Ejecuta el instalador premium
+- 🎮 Crea el ejecutable final
+- 🦖 ¡Todo con interfaz gráfica y progreso visual!
+
+---
+
+### 🎯 Instalación Manual Local (Si ya tienes el proyecto)
+
+1. **Ve a la carpeta `instalador/`**
+2. **Haz doble clic en `INSTALAR_PREMIUM.bat`**
+3. **Presiona el botón "🚀 INSTALAR TODO AUTOMÁTICAMENTE"**
+4. **¡Espera 5-10 minutos y listo!** ☕
+
+✨ **El instalador incluye:**
+- 🖥️ Interfaz gráfica hermosa con icono del dinosaurio 🦖
+- 🤖 Instalación completamente automática
+- 📦 Crea ejecutable .exe independiente
+- 🎮 Botón para ejecutar el juego al finalizar
+
+### 📋 Instalación Manual (Avanzada)
+
+```bash
 git clone https://github.com/FacundoTecnica1/Proyecto-ProgramacionPy.git
 cd Proyecto-ProgramacionPy
-```
-
-2. Crear un entorno virtual (recomendado) e instalar Pygame
-
-```powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install pygame
-```
-
-3. Ejecutar el juego
-
-```powershell
+.\.venv\Scripts\activate
+pip install -r instalador/requirements.txt
 python scr\main.py
 ```
+
+📖 **Ver [COMO_INSTALAR.txt](COMO_INSTALAR.txt) para más detalles.**
 
 Si tu estructura cambia, ajusta la ruta al archivo principal (`scr\main.py`).
 

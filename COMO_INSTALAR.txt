@@ -1,0 +1,84 @@
+# 🦖 INSTALADOR AUTOMÁTICO - JUEGO DINOSAURIO
+
+## � INSTALACIÓN SÚPER FÁCIL (1 BOTÓN)
+
+### 📥 **Paso 1: Preparación**
+1. **Descargar Python** (si no lo tienes):
+   - Ve a: https://www.python.org/downloads/
+   - Descarga Python 3.8 o superior
+   - ⚠️ **IMPORTANTE**: Marca "Add Python to PATH" durante la instalación
+
+### 🎯 **Paso 2: Instalación Automática**
+1. **Ve a la carpeta `instalador/`**
+2. **Haz doble clic en `INSTALAR_PREMIUM.bat`**
+3. **Presiona el botón "🚀 INSTALAR TODO AUTOMÁTICAMENTE"**
+4. **¡Espera 5-10 minutos y listo!** ☕
+
+---
+
+## ✨ **¿Qué hace el instalador automáticamente?**
+
+✅ **Verifica Python** y versión  
+✅ **Crea entorno virtual** (.venv)  
+✅ **Instala dependencias** (pygame, mysql-connector)  
+✅ **Instala PyInstaller** (para crear .exe)  
+✅ **Compila el juego** con icono del dinosaurio 🦖  
+✅ **Crea ejecutable independiente** (no necesita Python)  
+
+---
+
+## � **Resultado Final:**
+
+Después de la instalación tendrás:
+- **`dist/JuegoDinosaurio.exe`** ← Tu juego con icono 🦖
+- **Ejecutable independiente** (funciona sin Python)
+- **Listo para distribuir** a cualquier PC Windows
+
+---
+
+## 🆘 **Solución de Problemas**
+
+### ❌ **"Python no encontrado"**
+- Instala Python desde: https://www.python.org/downloads/
+- **IMPORTANTE**: Marca "Add Python to PATH"
+
+### ❌ **"Error de permisos"**
+- Click derecho en `INSTALAR_PREMIUM.bat`
+- Selecciona "Ejecutar como administrador"
+
+### ❌ **"No se puede crear ejecutable"**
+- Libera espacio en disco (necesitas ~500MB)
+- Cierra antivirus temporalmente
+
+---
+
+## 📋 **Requisitos del Sistema**
+
+- ✅ **Windows 10/11** (recomendado)
+- ✅ **Python 3.8+** con "Add to PATH" marcado
+- ✅ **500 MB** de espacio libre
+- ✅ **Conexión a internet** (para descargar dependencias)
+
+---
+
+## 🎯 **Para Compartir el Juego:**
+
+1. **Después de instalar**, ve a la carpeta `dist/`
+2. **Copia `JuegoDinosaurio.exe`** 
+3. **Envíalo a quien quieras**
+4. **Funciona sin Python** en cualquier Windows
+
+---
+
+## 👥 **Desarrollado por:**
+- Alma Carena
+- Facundo Noriega
+- Mateo Lugo
+- Santino Trevisano
+- Severino Bassus
+
+**GitHub:** FacundoTecnica1/Proyecto-ProgramacionPy
+
+---
+
+## 🦖 **¡Disfruta el juego!** 🎮
