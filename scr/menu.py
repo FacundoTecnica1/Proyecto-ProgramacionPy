@@ -11,7 +11,6 @@ class Menu:
         self.record_actual = record_actual
         self.opciones = [
             "Jugar",
-            "Elegir Nombre",
             "Elegir Mundo",
             "Sonidos",
             "Ver Rankings",
@@ -120,12 +119,6 @@ class Menu:
                         seleccion = self.opciones[self.opcion_seleccionada]
                         if seleccion == "Jugar":
                             return "jugar"
-                        elif seleccion == "Elegir Nombre":
-                            from elegir_nombre import ElegirNombre
-                            elegir_nombre = ElegirNombre(self.pantalla, self.ancho, self.alto)
-                            nombre, id_usuario = elegir_nombre.mostrar()
-                            self.nombre_actual = nombre
-                            self.id_usuario_actual = id_usuario
                         elif seleccion == "Elegir Mundo":
                             return "mundo"
                         elif seleccion == "Sonidos":

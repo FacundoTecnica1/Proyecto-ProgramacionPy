@@ -18,6 +18,12 @@ FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("AQUILES")
 
+# --- ELEGIR NOMBRE AL INICIO ---
+from elegir_nombre import ElegirNombre
+elegir_nombre = ElegirNombre(VENTANA, ANCHO, ALTO)
+nombre, id_usuario = elegir_nombre.mostrar()
+print(f"Jugador: {nombre} (ID: {id_usuario})")
+
 # --- RUTA DE IMÁGENES ---
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
 
@@ -101,6 +107,8 @@ ave_imgs = escalar_lista(imagenes["ave"], 100, 80)
 
 # --- MENÚ PRINCIPAL ---
 menu = Menu(VENTANA, ANCHO, ALTO, 0)
+menu.nombre_actual = nombre
+menu.id_usuario_actual = id_usuario
 
 # --- SELECCIÓN DE MUNDO ---
 mundo_actual = "noche"  # por defecto
