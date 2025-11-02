@@ -9,13 +9,17 @@ class Menu:
         self.ancho = ancho
         self.alto = alto
         self.record_actual = record_actual
-        self.opciones = [
-            "Jugar",
-            "Elegir Mundo",
-            "Ver Rankings",
-            "Salir"
-        ]
-        self.opcion_seleccionada = 0
+
+        # --- Idioma actual ---
+        self.idioma = "es"
+        self.textos = {
+            "es": ["Jugar", "Elegir Mundo", "Ver Rankings", "Salir"],
+            "en": ["Play", "Choose World", "View Rankings", "Exit"]
+        }
+
+        self.opciones = self.textos[self.idioma]
+        self.opcion_seleccionada = 0  # 0 = configuración superior
+        self.seleccion_horizontal = 0  # 0 = idioma, 1 = música
 
         # Colores y fuentes
         self.color_texto = (255, 255, 255)
@@ -26,8 +30,8 @@ class Menu:
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_opcion = pygame.font.Font(None, 55)
         self.fuente_record = pygame.font.Font(None, 40)
+        self.fuente_idioma = pygame.font.Font(None, 35)
 
-        # Volumen efectos
         self.volumen_sfx = 0.5
 
         # Fondo
@@ -35,111 +39,165 @@ class Menu:
         self.fondo_img = pygame.image.load(ruta_fondo).convert()
         self.fondo_img = pygame.transform.scale(self.fondo_img, (self.ancho, self.alto))
 
-        # --- Icono de música ---
+        # Icono de música
         ruta_icono = os.path.join(os.path.dirname(__file__), "..", "img", "IconoMusica.png")
         try:
             self.icono_musica = pygame.image.load(ruta_icono).convert_alpha()
             self.icono_musica = pygame.transform.scale(self.icono_musica, (60, 60))
         except Exception as e:
-            print(f"No se pudo cargar IconoMusica.jpg: {e}")
+            print(f"No se pudo cargar IconoMusica: {e}")
             self.icono_musica = None
-             
+
+        # Posiciones
         self.rect_icono_musica = pygame.Rect(self.ancho - 80, 20, 60, 60)
+        self.rect_boton_idioma = pygame.Rect(self.ancho - 250, 25, 150, 50)
 
         self.botones_rects = []
         self.nombre_actual = None
         self.id_usuario_actual = None
 
+    # ------------------------------------------------------------
     def dibujar_boton(self, texto, x, y, seleccionado=False):
         ancho_boton, alto_boton = 350, 60
         rect = pygame.Rect(0, 0, ancho_boton, alto_boton)
         rect.center = (x, y)
 
-        # Sombra del botón
         sombra_rect = rect.copy()
         sombra_rect.x += 4
         sombra_rect.y += 4
+
         sombra_surf = pygame.Surface((ancho_boton, alto_boton), pygame.SRCALPHA)
         pygame.draw.rect(sombra_surf, self.color_sombra, sombra_surf.get_rect(), border_radius=self.radio_boton)
         self.pantalla.blit(sombra_surf, sombra_rect.topleft)
 
-        # Botón principal
         color = self.color_hover if seleccionado else self.color_boton
         pygame.draw.rect(self.pantalla, color, rect, border_radius=self.radio_boton)
 
-        # Texto
         texto_surf = self.fuente_opcion.render(texto, True, self.color_texto)
         texto_rect = texto_surf.get_rect(center=rect.center)
         self.pantalla.blit(texto_surf, texto_rect)
 
         return rect
 
+    # ------------------------------------------------------------
+    def dibujar_boton_idioma(self, seleccionado=False):
+        color_borde = self.color_hover if seleccionado else (255, 255, 255)
+        pygame.draw.rect(self.pantalla, (0, 0, 0), self.rect_boton_idioma, border_radius=25)
+        pygame.draw.rect(self.pantalla, color_borde, self.rect_boton_idioma, 2, border_radius=25)
+
+        # globo idioma
+        centro_globo = (self.rect_boton_idioma.left + 20, self.rect_boton_idioma.centery)
+        pygame.draw.circle(self.pantalla, color_borde, centro_globo, 9, 2)
+        pygame.draw.line(self.pantalla, color_borde, (centro_globo[0] - 8, centro_globo[1]), (centro_globo[0] + 8, centro_globo[1]), 1)
+        pygame.draw.line(self.pantalla, color_borde, (centro_globo[0], centro_globo[1] - 8), (centro_globo[0], centro_globo[1] + 8), 1)
+
+        idioma_texto = "Español" if self.idioma == "es" else "English"
+        texto_surf = self.fuente_idioma.render(idioma_texto, True, color_borde)
+        self.pantalla.blit(texto_surf, (centro_globo[0] + 25, self.rect_boton_idioma.centery - 12))
+
+    # ------------------------------------------------------------
+    def cambiar_idioma(self):
+        self.idioma = "en" if self.idioma == "es" else "es"
+        self.opciones = self.textos[self.idioma]
+
+    # ------------------------------------------------------------
+    def dibujar_icono_musica(self, seleccionado=False):
+        if not self.icono_musica:
+            return
+        if seleccionado:
+            pygame.draw.rect(self.pantalla, self.color_hover, self.rect_icono_musica.inflate(8, 8), 3, border_radius=10)
+        self.pantalla.blit(self.icono_musica, self.rect_icono_musica.topleft)
+
+    # ------------------------------------------------------------
     def mostrar(self):
         clock = pygame.time.Clock()
+        total_opciones = len(self.opciones) + 1  # +1 por la barra superior (configuración)
+
         while True:
             self.pantalla.blit(self.fondo_img, (0, 0))
 
             # --- Título ---
-            titulo_surf = self.fuente_titulo.render("Dino", True, self.color_texto)
+            titulo = "Dino" if self.idioma == "es" else "Dino Game"
+            titulo_surf = self.fuente_titulo.render(titulo, True, self.color_texto)
             titulo_rect = titulo_surf.get_rect(center=(self.ancho // 2, 100))
             self.pantalla.blit(titulo_surf, titulo_rect)
 
-            # --- Distribución en una sola columna ---
+            # --- Info jugador ---
+            if self.nombre_actual:
+                texto_record = f"Record: {self.record_actual}"
+                texto_jugador = f"Jugador: {self.nombre_actual}" if self.idioma == "es" else f"Player: {self.nombre_actual}"
+                texto_completo = f"{texto_record}    |    {texto_jugador}"
+            else:
+                texto_completo = f"Record: {self.record_actual}"
+
+            texto_surf = self.fuente_record.render(texto_completo, True, (230, 230, 230))
+            texto_rect = texto_surf.get_rect(center=(self.ancho // 2, 165))
+            self.pantalla.blit(texto_surf, texto_rect)
+            pygame.draw.line(self.pantalla, (180, 180, 180),
+                             (texto_rect.left - 10, texto_rect.bottom + 5),
+                             (texto_rect.right + 10, texto_rect.bottom + 5), 2)
+
+            # --- Dibujar configuración superior ---
+            self.dibujar_boton_idioma(seleccionado=(self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0))
+            self.dibujar_icono_musica(seleccionado=(self.opcion_seleccionada == 0 and self.seleccion_horizontal == 1))
+
+            # --- Botones principales ---
             self.botones_rects.clear()
             espacio_vertical = 100
-            inicio_y = self.alto // 2 - 100  # posición inicial centrada
+            inicio_y = self.alto // 2 - 100
             x_centro = self.ancho // 2
 
             for i, opcion in enumerate(self.opciones):
-                if i >= 3:  # máximo 3 botones visibles
-                    break
+                indice_real = i + 1
                 y = inicio_y + i * espacio_vertical
-                rect = self.dibujar_boton(opcion, x_centro, y, seleccionado=(i == self.opcion_seleccionada))
+                rect = self.dibujar_boton(opcion, x_centro, y,
+                                          seleccionado=(self.opcion_seleccionada == indice_real))
                 self.botones_rects.append(rect)
 
-            # Record actual
-            record_surf = self.fuente_record.render(f"Record: {self.record_actual}", True, self.color_texto)
-            record_rect = record_surf.get_rect(center=(self.ancho // 2, self.alto - 120))
-            self.pantalla.blit(record_surf, record_rect)
-
-            # Nombre actual (si existe)
-            if self.nombre_actual:
-                nombre_surf = self.fuente_record.render(f"Jugador: {self.nombre_actual}", True, self.color_texto)
-                nombre_rect = nombre_surf.get_rect(center=(self.ancho // 2, self.alto - 80))
-                self.pantalla.blit(nombre_surf, nombre_rect)
-                
-            # --- Dibujar icono de música ---
-            if self.icono_musica:
-                self.pantalla.blit(self.icono_musica, self.rect_icono_musica.topleft)
-
-            # --- Eventos ---
+            # --- Controles ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
-                        self.opcion_seleccionada = (self.opcion_seleccionada - 1) % len(self.opciones)
-                    elif event.key == pygame.K_DOWN:
-                        self.opcion_seleccionada = (self.opcion_seleccionada + 1) % len(self.opciones)
-                    elif event.key == pygame.K_RETURN:
-                        seleccion = self.opciones[self.opcion_seleccionada]
-                        if seleccion == "Jugar":
-                            return "jugar"
-                        elif seleccion == "Elegir Mundo":
-                            return "mundo"
-                        elif seleccion == "Ver Rankings":
-                            from mostrar_ranking import MostrarRanking
-                            pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto)
-                            pantalla_ranking.mostrar()
-                        elif seleccion == "Salir":
-                            pygame.quit()
-                            sys.exit()
+                        if self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0:
+                            self.cambiar_idioma()
+                        else:
+                            self.opcion_seleccionada = (self.opcion_seleccionada - 1) % total_opciones
 
-                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if self.rect_icono_musica.collidepoint(event.pos):
-                        selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx)
-                        self.volumen_sfx = selector.mostrar()
+                    elif event.key == pygame.K_DOWN:
+                        if self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0:
+                            self.cambiar_idioma()
+                        else:
+                            self.opcion_seleccionada = (self.opcion_seleccionada + 1) % total_opciones
+
+                    elif event.key == pygame.K_LEFT and self.opcion_seleccionada == 0:
+                        self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
+
+                    elif event.key == pygame.K_RIGHT:
+                        if self.opcion_seleccionada == 0:
+                            # Barra de configuración
+                            if self.seleccion_horizontal == 0:
+                                self.seleccion_horizontal = 1
+                            elif self.seleccion_horizontal == 1:
+                                selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx)
+                                self.volumen_sfx = selector.mostrar()
+                        else:
+                            # Confirmar botón principal con →
+                            seleccion = self.opciones[self.opcion_seleccionada - 1]
+                            if seleccion in ["Jugar", "Play"]:
+                                return "jugar"
+                            elif seleccion in ["Elegir Mundo", "Choose World"]:
+                                return "mundo"
+                            elif seleccion in ["Ver Rankings", "View Rankings"]:
+                                from mostrar_ranking import MostrarRanking
+                                pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto)
+                                pantalla_ranking.mostrar()
+                            elif seleccion in ["Salir", "Exit"]:
+                                pygame.quit()
+                                sys.exit()
 
             pygame.display.flip()
             clock.tick(60)
