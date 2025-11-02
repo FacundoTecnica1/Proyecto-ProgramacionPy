@@ -1,6 +1,54 @@
 import pygame
 import sys
 import os
+import random
+
+
+# --- FUNCIÓN PARA CARGAR IMAGEN ---
+def cargar_imagen(nombre):
+    ruta_base = os.path.join(os.path.dirname(__file__), "..", "img")
+    return pygame.image.load(os.path.join(ruta_base, nombre)).convert_alpha()
+
+
+# --- FUNCIÓN PARA ESCALAR LISTAS DE IMÁGENES ---
+def escalar_lista(lista, w, h):
+    return [pygame.transform.smoothscale(img, (w, h)) for img in lista]
+
+
+# --- FUNCIÓN PARA ESCALAR Y CENTRAR EN CUADRADO ---
+def escalar_y_cuadrar(img, size):
+    """Escala una imagen manteniendo el aspecto y la centra en un lienzo cuadrado."""
+    w, h = img.get_size()
+    factor = min(size / w, size / h)
+    new_w, new_h = int(w * factor), int(h * factor)
+    img_escalada = pygame.transform.smoothscale(img, (new_w, new_h))
+    lienzo = pygame.Surface((size, size), pygame.SRCALPHA)
+    lienzo.blit(img_escalada, ((size - new_w) // 2, (size - new_h) // 2))
+    return lienzo
+
+
+class Polvo:
+    """Partícula de polvo que aparece debajo de los personajes"""
+    def __init__(self, x, y):
+        self.x = x + random.randint(-10, 10)
+        self.y = y + random.randint(10, 15)
+        self.radio = random.randint(3, 6)
+        self.velocidad = random.uniform(0.8, 1.5)
+        self.alpha = 180
+
+    def actualizar(self):
+        self.x -= self.velocidad
+        self.y -= 0.2
+        self.alpha -= 4
+        return self.alpha > 0
+
+    def dibujar(self, pantalla):
+        if self.alpha > 0:
+            superficie = pygame.Surface((self.radio * 2, self.radio * 2), pygame.SRCALPHA)
+            pygame.draw.circle(superficie, (255, 255, 255, self.alpha),
+                               (self.radio, self.radio), self.radio)
+            pantalla.blit(superficie, (self.x - self.radio, self.y - self.radio))
+
 
 class SeleccionPersonaje:
     def __init__(self, pantalla, ancho, alto):
@@ -8,60 +56,157 @@ class SeleccionPersonaje:
         self.ancho = ancho
         self.alto = alto
 
-        self.color_titulo = (255, 220, 100)
-        self.color_normal = (180, 180, 180)
+        # --- Fuentes ---
+        self.fuente_titulo = pygame.font.Font(None, 90)
+        self.fuente_nombre = pygame.font.Font(None, 60)
+        self.fuente_volver = pygame.font.Font(None, 55)
+
+        # --- Colores ---
+        self.color_marco = (220, 220, 220)
         self.color_hover = (255, 255, 255)
+        self.color_texto = (230, 230, 230)
         self.color_sombra = (0, 0, 0)
 
-        self.fuente_titulo = pygame.font.Font(None, 90)
-        self.fuente_opcion = pygame.font.Font(None, 60)
-
+        # --- Fondo ---
         ruta_base = os.path.join(os.path.dirname(__file__), "..", "img")
-        self.img_perro = pygame.transform.scale(
-            pygame.image.load(os.path.join(ruta_base, "perro_run1.png")).convert_alpha(), (150, 150)
+        self.fondo = pygame.image.load(os.path.join(ruta_base, "fondo.png")).convert()
+        self.fondo = pygame.transform.scale(self.fondo, (ancho, alto))
+
+        # --- Animaciones ---
+        self.frames_perro = escalar_lista(
+            [escalar_y_cuadrar(cargar_imagen(f"perro_run{i}.png"), 220) for i in range(1, 5)], 220, 220
         )
-        self.img_gato = pygame.transform.scale(
-            pygame.image.load(os.path.join(ruta_base, "gato_run1.png")).convert_alpha(), (150, 150)
+        self.frames_gato = escalar_lista(
+            [escalar_y_cuadrar(cargar_imagen(f"gato_run{i}.png"), 220) for i in range(1, 5)], 220, 220
         )
 
-        self.opciones = ["Perro", "Gato"]
+        # --- Control de frames ---
+        self.frame_index_perro = 0
+        self.frame_index_gato = 0
+        self.frame_timer = 0
+
+        # --- Polvo (efecto animado) ---
+        self.polvos_perro = []
+        self.polvos_gato = []
+
+        self.opciones = ["Perro", "Gato", "Volver"]
         self.opcion_sel = 0
 
-    def dibujar_texto(self, texto, fuente, color, x, y, centrado=True, sombra=False):
+    def dibujar_texto(self, texto, fuente, color, x, y, sombra=True, centrado=True):
         if sombra:
             sombra_surface = fuente.render(texto, True, self.color_sombra)
-            rect_sombra = sombra_surface.get_rect(center=(x + 3, y + 3))
-            self.pantalla.blit(sombra_surface, rect_sombra)
+            sombra_rect = sombra_surface.get_rect(center=(x + 3, y + 3))
+            self.pantalla.blit(sombra_surface, sombra_rect)
         texto_surface = fuente.render(texto, True, color)
-        rect = texto_surface.get_rect(center=(x, y))
+        rect = texto_surface.get_rect(center=(x, y)) if centrado else texto_surface.get_rect(topleft=(x, y))
         self.pantalla.blit(texto_surface, rect)
+
+    def dibujar_tarjeta(self, nombre, imagen, x, y, seleccionado=False, polvos=None):
+        ancho_card, alto_card = 260, 340
+        card_rect = pygame.Rect(x - ancho_card // 2, y - alto_card // 2, ancho_card, alto_card)
+
+        superficie_card = pygame.Surface((ancho_card, alto_card), pygame.SRCALPHA)
+        color_base = (40, 40, 40) if not seleccionado else (80, 80, 80)
+        pygame.draw.rect(superficie_card, color_base, (0, 0, ancho_card, alto_card), border_radius=20)
+        pygame.draw.rect(superficie_card, self.color_marco, (0, 0, ancho_card, alto_card), 4, border_radius=20)
+
+        sombra = pygame.Surface((ancho_card + 10, alto_card + 10), pygame.SRCALPHA)
+        sombra.fill((0, 0, 0, 100))
+        self.pantalla.blit(sombra, (card_rect.x + 4, card_rect.y + 4))
+        self.pantalla.blit(superficie_card, (card_rect.x, card_rect.y))
+
+        # --- Dibujar polvo debajo ---
+        if polvos is not None:
+            for p in polvos[:]:
+                if not p.actualizar():
+                    polvos.remove(p)
+                else:
+                    p.dibujar(self.pantalla)
+
+        # --- Imagen del personaje ---
+        img_rect = imagen.get_rect(center=(x, y - 30))
+        self.pantalla.blit(imagen, img_rect)
+
+        # --- Nombre ---
+        color_texto = self.color_hover if seleccionado else self.color_texto
+        self.dibujar_texto(nombre.upper(), self.fuente_nombre, color_texto, x, y + 110)
+
+        if seleccionado:
+            brillo = pygame.Surface((ancho_card, alto_card), pygame.SRCALPHA)
+            pygame.draw.rect(brillo, (255, 255, 255, 25), (0, 0, ancho_card, alto_card), border_radius=20)
+            self.pantalla.blit(brillo, (card_rect.x, card_rect.y))
 
     def mostrar(self):
         clock = pygame.time.Clock()
+        anim = 0
+        direccion = 1
+
         while True:
-            self.pantalla.fill((25, 25, 30))
-            self.dibujar_texto("Selecciona tu personaje", self.fuente_titulo, self.color_titulo,
-                               self.ancho // 2, 100, sombra=True)
+            self.pantalla.blit(self.fondo, (0, 0))
 
-            for i, opcion in enumerate(self.opciones):
-                color = self.color_hover if i == self.opcion_sel else self.color_normal
-                y = self.alto // 2 + i * 150
-                self.dibujar_texto(opcion, self.fuente_opcion, color, self.ancho // 2, y + 90, sombra=True)
-                img = self.img_perro if opcion == "Perro" else self.img_gato
-                rect = img.get_rect(center=(self.ancho // 2, y))
-                self.pantalla.blit(img, rect)
+            self.dibujar_texto("Selecciona tu personaje", self.fuente_titulo,
+                               (255, 255, 255), self.ancho // 2, 100)
 
+            if anim > 10 or anim < -10:
+                direccion *= -1
+            anim += direccion * 0.5
+
+            self.frame_timer += 1
+            if self.frame_timer >= 10:
+                self.frame_timer = 0
+                self.frame_index_perro = (self.frame_index_perro + 1) % len(self.frames_perro)
+                self.frame_index_gato = (self.frame_index_gato + 1) % len(self.frames_gato)
+
+                # Generar polvo cada cambio de frame
+                self.polvos_perro.append(Polvo(self.ancho // 2 - 200, self.alto // 2 + 140))
+                self.polvos_gato.append(Polvo(self.ancho // 2 + 200, self.alto // 2 + 140))
+
+            perro_img = self.frames_perro[self.frame_index_perro]
+            gato_img = self.frames_gato[self.frame_index_gato]
+
+            centro_y = self.alto // 2 + 40
+            sep_x = 200
+            x_perro = self.ancho // 2 - sep_x
+            x_gato = self.ancho // 2 + sep_x
+
+            self.dibujar_tarjeta("Perro", perro_img, x_perro,
+                                 centro_y + (anim if self.opcion_sel == 0 else 0),
+                                 seleccionado=(self.opcion_sel == 0),
+                                 polvos=self.polvos_perro)
+            self.dibujar_tarjeta("Gato", gato_img, x_gato,
+                                 centro_y + (anim if self.opcion_sel == 1 else 0),
+                                 seleccionado=(self.opcion_sel == 1),
+                                 polvos=self.polvos_gato)
+
+            # --- Botón VOLVER (abajo centrado) ---
+            boton_ancho, boton_alto = 200, 65
+            boton_x = self.ancho // 2 - boton_ancho // 2
+            boton_y = self.alto - 100
+            boton_rect = pygame.Rect(boton_x, boton_y, boton_ancho, boton_alto)
+
+            color_btn = (50, 50, 50)
+            if self.opcion_sel == 2:
+                color_btn = (180, 180, 180)
+            pygame.draw.rect(self.pantalla, color_btn, boton_rect, border_radius=20)
+            pygame.draw.rect(self.pantalla, (255, 255, 255), boton_rect, 3, border_radius=20)
+            self.dibujar_texto("VOLVER", self.fuente_volver, (255, 255, 255),
+                               boton_rect.centerx, boton_rect.centery)
+
+            # --- Eventos ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
+                    if event.key == pygame.K_LEFT:
                         self.opcion_sel = (self.opcion_sel - 1) % len(self.opciones)
-                    elif event.key == pygame.K_DOWN:
+                    elif event.key == pygame.K_RIGHT:
                         self.opcion_sel = (self.opcion_sel + 1) % len(self.opciones)
                     elif event.key == pygame.K_RETURN:
-                        return self.opciones[self.opcion_sel].lower()
+                        seleccion = self.opciones[self.opcion_sel].lower()
+                        return seleccion
+                    elif event.key == pygame.K_ESCAPE:
+                        return "volver"
 
             pygame.display.flip()
             clock.tick(60)

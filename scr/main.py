@@ -17,7 +17,7 @@ pygame.mixer.init()
 ANCHO, ALTO = 850, 670
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("AQUILES")
+pygame.display.set_caption("Dino")
 
 # --- ELEGIR NOMBRE AL INICIO ---
 from elegir_nombre import ElegirNombre
@@ -454,4 +454,3 @@ while True:
         mostrar_texto("Presiona ESC para volver al menú", ANCHO // 2, ALTO // 2 + 140, BLANCO, VENTANA, centrado=True)
 
     pygame.display.flip()
-O

@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+import math
 import mysql.connector
 
 class ElegirNombre:
@@ -16,6 +17,7 @@ class ElegirNombre:
         self.fuente_titulo = pygame.font.Font(None, 100)
         self.fuente_letra = pygame.font.Font(None, 120)
         self.fuente_info = pygame.font.Font(None, 40)
+        self.anim_tiempo = 0
 
         # 🖼️ Fondo opcional
         ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo.png")
@@ -92,6 +94,24 @@ class ElegirNombre:
         return fila[0] if fila else None
 
     # ============================
+    # 🎨 FONDO ANIMADO
+    # ============================
+    def gradiente_fondo(self):
+        """Fondo animado tipo aurora, sin errores de color"""
+        self.anim_tiempo += 0.015
+
+        for y in range(self.alto):
+            r = 40 + int(40 * math.sin(self.anim_tiempo + y * 0.008))
+            g = 20 + int(30 * math.sin(self.anim_tiempo * 0.6 + y * 0.015))
+            b = 80 + int(50 * math.cos(self.anim_tiempo + y * 0.01))
+
+            r = max(0, min(255, r))
+            g = max(0, min(255, g))
+            b = max(0, min(255, b))
+
+            pygame.draw.line(self.pantalla, (r, g, b), (0, y), (self.ancho, y))
+
+    # ============================
     # 🔠 INTERFAZ
     # ============================
     def cargar_nombre_guardado(self, nombre):
@@ -104,11 +124,13 @@ class ElegirNombre:
         clock = pygame.time.Clock()
 
         while True:
+            # Fondo animado o imagen
             if self.fondo_img:
                 self.pantalla.blit(self.fondo_img, (0, 0))
             else:
-                self.pantalla.fill(self.color_fondo)
+                self.gradiente_fondo()
 
+            # 🔰 Título
             titulo_texto = "ELIGE TU NOMBRE"
             sombra = self.fuente_titulo.render(titulo_texto, True, (0, 0, 0))
             texto = self.fuente_titulo.render(titulo_texto, True, self.color_texto)
@@ -116,21 +138,27 @@ class ElegirNombre:
             self.pantalla.blit(sombra, (rect.x + 3, rect.y + 3))
             self.pantalla.blit(texto, rect)
 
+            # 🔤 Letras
             inicio_x = self.ancho // 2 - 1.5 * 140
             for i in range(4):
                 letra = self.letras[self.indice[i]]
                 color = self.color_resaltado if i == self.posicion_actual else self.color_texto
                 surf = self.fuente_letra.render(letra, True, color)
                 rect = surf.get_rect(center=(inicio_x + i * 140, self.alto // 2))
+
+                # Cuadro con borde y fondo translúcido
+                caja_rect = rect.inflate(50, 50)
+                pygame.draw.rect(self.pantalla, (0, 0, 0, 100), caja_rect, border_radius=15)
+                pygame.draw.rect(self.pantalla, color, caja_rect, 3, border_radius=15)
                 self.pantalla.blit(surf, rect)
-                if i == self.posicion_actual:
-                    pygame.draw.rect(self.pantalla, self.color_resaltado,
-                                     rect.inflate(30, 30), 3, border_radius=15)
 
-            info_text = "↑ ↓ Cambiar letra   ← → Mover   ENTER Confirmar"
-            info = self.fuente_info.render(info_text, True, (200, 200, 200))
-            self.pantalla.blit(info, info.get_rect(center=(self.ancho // 2, self.alto - 80)))
+           
+            # 🎧 Efectos visuales suaves
+            overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+            overlay.fill((10, 10, 30, 30))
+            self.pantalla.blit(overlay, (0, 0))
 
+            # 🎮 Controles
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -142,13 +170,14 @@ class ElegirNombre:
                     elif event.key == pygame.K_DOWN:
                         self.indice[self.posicion_actual] = (self.indice[self.posicion_actual] - 1) % len(self.letras)
                     elif event.key == pygame.K_RIGHT:
-                        self.posicion_actual = (self.posicion_actual + 1) % 4
+                        if self.posicion_actual == 3:  # 👉 Confirmar nombre
+                            nombre = "".join([self.letras[i] for i in self.indice])
+                            id_usuario = self.guardar_nombre(nombre)
+                            return nombre, id_usuario
+                        else:
+                            self.posicion_actual = (self.posicion_actual + 1) % 4
                     elif event.key == pygame.K_LEFT:
                         self.posicion_actual = (self.posicion_actual - 1) % 4
-                    elif event.key == pygame.K_RETURN:
-                        nombre = "".join([self.letras[i] for i in self.indice])
-                        id_usuario = self.guardar_nombre(nombre)
-                        return nombre, id_usuario
 
             pygame.display.flip()
             clock.tick(60)
