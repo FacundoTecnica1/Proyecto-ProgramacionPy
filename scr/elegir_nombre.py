@@ -3,12 +3,15 @@ import sys
 import os
 import math
 import mysql.connector
+import serial # <-- MODIFICADO: Importado
 
 class ElegirNombre:
-    def __init__(self, pantalla, ancho, alto):
+    # MODIFICADO: Añadido arduino_serial=None
+    def __init__(self, pantalla, ancho, alto, arduino_serial=None):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
+        self.arduino_serial = arduino_serial # <-- MODIFICADO
 
         # 🎨 Estilo visual
         self.color_texto = (255, 255, 255)
@@ -55,44 +58,55 @@ class ElegirNombre:
     # 📦 BASE DE DATOS
     # ============================
     def crear_tablas(self):
-        conexion = mysql.connector.connect(**self.db_config)
-        cursor = conexion.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS usuario (
-                Id_Usuario INT AUTO_INCREMENT PRIMARY KEY,
-                Nombre VARCHAR(50) NOT NULL
-            );
-        """)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS ranking (
-                Id_Ranking INT AUTO_INCREMENT PRIMARY KEY,
-                Id_Usuario INT NOT NULL,
-                Puntaje INT NOT NULL,
-                FOREIGN KEY (Id_Usuario) REFERENCES usuario(Id_Usuario)
-            );
-        """)
-        conexion.commit()
-        conexion.close()
+        try:
+            conexion = mysql.connector.connect(**self.db_config)
+            cursor = conexion.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS usuario (
+                    Id_Usuario INT AUTO_INCREMENT PRIMARY KEY,
+                    Nombre VARCHAR(50) NOT NULL
+                );
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ranking (
+                    Id_Ranking INT AUTO_INCREMENT PRIMARY KEY,
+                    Id_Usuario INT NOT NULL,
+                    Puntaje INT NOT NULL,
+                    FOREIGN KEY (Id_Usuario) REFERENCES usuario(Id_Usuario)
+                );
+            """)
+            conexion.commit()
+            conexion.close()
+        except Exception as e:
+            print(f"[ERROR DB] {e}")
 
     def guardar_nombre(self, nombre):
         """Guarda el nombre en la base de datos y devuelve su ID"""
-        conexion = mysql.connector.connect(**self.db_config)
-        cursor = conexion.cursor()
-        cursor.execute("INSERT INTO usuario (Nombre) VALUES (%s);", (nombre,))
-        conexion.commit()
-        self.id_usuario_actual = cursor.lastrowid
-        conexion.close()
-        print(f"[INFO] Usuario '{nombre}' guardado con ID {self.id_usuario_actual}")
-        return self.id_usuario_actual
+        try:
+            conexion = mysql.connector.connect(**self.db_config)
+            cursor = conexion.cursor()
+            cursor.execute("INSERT INTO usuario (Nombre) VALUES (%s);", (nombre,))
+            conexion.commit()
+            self.id_usuario_actual = cursor.lastrowid
+            conexion.close()
+            print(f"[INFO] Usuario '{nombre}' guardado con ID {self.id_usuario_actual}")
+            return self.id_usuario_actual
+        except Exception as e:
+            print(f"[ERROR DB] {e}")
+            return None # Retornar None en caso de error
 
     def obtener_nombre_guardado(self):
-        conexion = mysql.connector.connect(**self.db_config)
-        cursor = conexion.cursor()
-        cursor.execute("SELECT Nombre FROM usuario ORDER BY Id_Usuario DESC LIMIT 1;")
-        fila = cursor.fetchone()
-        conexion.close()
-        return fila[0] if fila else None
-
+        try:
+            conexion = mysql.connector.connect(**self.db_config)
+            cursor = conexion.cursor()
+            cursor.execute("SELECT Nombre FROM usuario ORDER BY Id_Usuario DESC LIMIT 1;")
+            fila = cursor.fetchone()
+            conexion.close()
+            return fila[0] if fila else None
+        except Exception as e:
+            print(f"[ERROR DB] {e}")
+            return None
+            
     # ============================
     # 🎨 FONDO ANIMADO
     # ============================
@@ -148,7 +162,10 @@ class ElegirNombre:
 
                 # Cuadro con borde y fondo translúcido
                 caja_rect = rect.inflate(50, 50)
-                pygame.draw.rect(self.pantalla, (0, 0, 0, 100), caja_rect, border_radius=15)
+                sombra_surf = pygame.Surface(caja_rect.size, pygame.SRCALPHA)
+                pygame.draw.rect(sombra_surf, (0, 0, 0, 100), sombra_surf.get_rect(), border_radius=15)
+                self.pantalla.blit(sombra_surf, caja_rect.topleft)
+                
                 pygame.draw.rect(self.pantalla, color, caja_rect, 3, border_radius=15)
                 self.pantalla.blit(surf, rect)
 
@@ -158,9 +175,61 @@ class ElegirNombre:
             overlay.fill((10, 10, 30, 30))
             self.pantalla.blit(overlay, (0, 0))
 
+            # ----------------------------------------------------
+            # ⬇️ BLOQUE DE LECTURA SERIAL (AÑADIDO) ⬇️
+            # ----------------------------------------------------
+            if self.arduino_serial is not None and self.arduino_serial.is_open:
+                try:
+                    while self.arduino_serial.in_waiting > 0:
+                        linea = self.arduino_serial.readline().decode('utf-8').strip()
+                        
+                        evento_tipo = None
+                        evento_key = None
+
+                        if linea == "UP_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_UP
+                        elif linea == "UP_UP":
+                            evento_tipo = pygame.KEYUP
+                            evento_key = pygame.K_UP
+                        elif linea == "DOWN_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_DOWN
+                        elif linea == "DOWN_UP":
+                            evento_tipo = pygame.KEYUP
+                            evento_key = pygame.K_DOWN
+                        elif linea == "LEFT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_LEFT
+                        elif linea == "LEFT_UP":
+                            evento_tipo = pygame.KEYUP
+                            evento_key = pygame.K_LEFT
+                        elif linea == "RIGHT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_RIGHT
+                        elif linea == "RIGHT_UP":
+                            evento_tipo = pygame.KEYUP
+                            evento_key = pygame.K_RIGHT
+
+                        if evento_tipo is not None:
+                            evento_post = pygame.event.Event(evento_tipo, key=evento_key)
+                            pygame.event.post(evento_post)
+                            
+                except Exception as e:
+                    print(f"[ERROR SERIAL] Lectura/Conexión fallida: {e}")
+                    try:
+                        self.arduino_serial.close()
+                    except Exception:
+                        pass
+                    self.arduino_serial = None
+            # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
+            # ----------------------------------------------------
+
             # 🎮 Controles
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    if self.arduino_serial and self.arduino_serial.is_open:
+                        self.arduino_serial.close()
                     pygame.quit()
                     sys.exit()
 

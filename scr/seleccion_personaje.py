@@ -2,6 +2,7 @@ import pygame
 import sys
 import os
 import random
+import serial # <-- MODIFICADO: Importado
 
 
 # --- FUNCIÓN PARA CARGAR IMAGEN ---
@@ -51,10 +52,12 @@ class Polvo:
 
 
 class SeleccionPersonaje:
-    def __init__(self, pantalla, ancho, alto):
+    # MODIFICADO: Añadido arduino_serial=None
+    def __init__(self, pantalla, ancho, alto, arduino_serial=None):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
+        self.arduino_serial = arduino_serial # <-- MODIFICADO
 
         # --- Fuentes ---
         self.fuente_titulo = pygame.font.Font(None, 90)
@@ -89,14 +92,17 @@ class SeleccionPersonaje:
         self.polvos_perro = []
         self.polvos_gato = []
 
-        self.opciones = ["Perro", "Gato", "Volver"]
-        self.opcion_sel = 0
+        self.opciones = ["perro", "gato", "volver"]
+        self.opcion_sel = 0 # 0 = Perro, 1 = Gato, 2 = Volver
 
     def dibujar_texto(self, texto, fuente, color, x, y, sombra=True, centrado=True):
         if sombra:
             sombra_surface = fuente.render(texto, True, self.color_sombra)
             sombra_rect = sombra_surface.get_rect(center=(x + 3, y + 3))
-            self.pantalla.blit(sombra_surface, sombra_rect)
+            if centrado:
+                self.pantalla.blit(sombra_surface, sombra_rect)
+            else:
+                 self.pantalla.blit(sombra_surface, (sombra_rect.x, sombra_rect.y))
         texto_surface = fuente.render(texto, True, color)
         rect = texto_surface.get_rect(center=(x, y)) if centrado else texto_surface.get_rect(topleft=(x, y))
         self.pantalla.blit(texto_surface, rect)
@@ -106,9 +112,11 @@ class SeleccionPersonaje:
         card_rect = pygame.Rect(x - ancho_card // 2, y - alto_card // 2, ancho_card, alto_card)
 
         superficie_card = pygame.Surface((ancho_card, alto_card), pygame.SRCALPHA)
-        color_base = (40, 40, 40) if not seleccionado else (80, 80, 80)
+        color_base = (40, 40, 40, 200) if not seleccionado else (80, 80, 80, 220)
         pygame.draw.rect(superficie_card, color_base, (0, 0, ancho_card, alto_card), border_radius=20)
-        pygame.draw.rect(superficie_card, self.color_marco, (0, 0, ancho_card, alto_card), 4, border_radius=20)
+        
+        color_borde = self.color_hover if seleccionado else self.color_marco
+        pygame.draw.rect(superficie_card, color_borde, (0, 0, ancho_card, alto_card), 4, border_radius=20)
 
         sombra = pygame.Surface((ancho_card + 10, alto_card + 10), pygame.SRCALPHA)
         sombra.fill((0, 0, 0, 100))
@@ -185,27 +193,93 @@ class SeleccionPersonaje:
             boton_rect = pygame.Rect(boton_x, boton_y, boton_ancho, boton_alto)
 
             color_btn = (50, 50, 50)
+            color_borde = (255, 255, 255)
             if self.opcion_sel == 2:
-                color_btn = (180, 180, 180)
+                color_btn = (100, 100, 100)
+                color_borde = self.color_hover
+            
             pygame.draw.rect(self.pantalla, color_btn, boton_rect, border_radius=20)
-            pygame.draw.rect(self.pantalla, (255, 255, 255), boton_rect, 3, border_radius=20)
+            pygame.draw.rect(self.pantalla, color_borde, boton_rect, 3, border_radius=20)
             self.dibujar_texto("VOLVER", self.fuente_volver, (255, 255, 255),
                                boton_rect.centerx, boton_rect.centery)
 
-            # --- Eventos ---
+            # ----------------------------------------------------
+            # ⬇️ BLOQUE DE LECTURA SERIAL (AÑADIDO) ⬇️
+            # ----------------------------------------------------
+            if self.arduino_serial is not None and self.arduino_serial.is_open:
+                try:
+                    while self.arduino_serial.in_waiting > 0:
+                        linea = self.arduino_serial.readline().decode('utf-8').strip()
+                        
+                        evento_tipo = None
+                        evento_key = None
+
+                        if linea == "UP_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_UP
+                        elif linea == "DOWN_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_DOWN
+                        elif linea == "LEFT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_LEFT
+                        elif linea == "RIGHT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_RIGHT
+
+                        if evento_tipo is not None:
+                            evento_post = pygame.event.Event(evento_tipo, key=evento_key)
+                            pygame.event.post(evento_post)
+                            
+                except Exception as e:
+                    print(f"[ERROR SERIAL] Lectura/Conexión fallida: {e}")
+                    try:
+                        self.arduino_serial.close()
+                    except Exception:
+                        pass
+                    self.arduino_serial = None
+            # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
+            # ----------------------------------------------------
+
+
+            # --- Eventos (MODIFICADOS) ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    if self.arduino_serial and self.arduino_serial.is_open:
+                        self.arduino_serial.close()
                     pygame.quit()
                     sys.exit()
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
-                        self.opcion_sel = (self.opcion_sel - 1) % len(self.opciones)
+                    
+                    if event.key == pygame.K_DOWN:
+                        if self.opcion_sel == 0 or self.opcion_sel == 1:
+                            self.opcion_sel = 2 # Ir a Volver
+                    
+                    elif event.key == pygame.K_UP:
+                        if self.opcion_sel == 2:
+                            self.opcion_sel = 0 # Ir a Perro
+                    
+                    elif event.key == pygame.K_LEFT:
+                        if self.opcion_sel == 1:
+                            self.opcion_sel = 0 # Gato -> Perro
+                        elif self.opcion_sel == 2:
+                            self.opcion_sel = 0 # Volver -> Perro
+                        elif self.opcion_sel == 0:
+                            return "volver" # Perro -> Volver (Acción)
+
                     elif event.key == pygame.K_RIGHT:
-                        self.opcion_sel = (self.opcion_sel + 1) % len(self.opciones)
-                    elif event.key == pygame.K_RETURN:
-                        seleccion = self.opciones[self.opcion_sel].lower()
-                        return seleccion
-                    elif event.key == pygame.K_ESCAPE:
+                        if self.opcion_sel == 0:
+                            self.opcion_sel = 1 # Perro -> Gato
+                        elif self.opcion_sel == 2:
+                             self.opcion_sel = 1 # Volver -> Gato
+                        elif self.opcion_sel == 1:
+                            # Gato -> Seleccionar Gato (Acción)
+                            return self.opciones[self.opcion_sel] 
+
+                    elif event.key == pygame.K_RETURN: # Mantener Enter por si acaso
+                        return self.opciones[self.opcion_sel]
+                    
+                    elif event.key == pygame.K_ESCAPE: # Mantener Escape
                         return "volver"
 
             pygame.display.flip()

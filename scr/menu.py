@@ -1,14 +1,18 @@
 import pygame
 import sys
 import os
+import serial # <-- MODIFICADO: Importado
 from seleccionar_sonido import SelectorSonido
+from mostrar_ranking import MostrarRanking
 
 class Menu:
-    def __init__(self, pantalla, ancho, alto, record_actual):
+    # MODIFICADO: Añadido arduino_serial=None
+    def __init__(self, pantalla, ancho, alto, record_actual, arduino_serial=None):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
         self.record_actual = record_actual
+        self.arduino_serial = arduino_serial # <-- MODIFICADO
 
         # --- Idioma actual ---
         self.idioma = "es"
@@ -154,9 +158,51 @@ class Menu:
                                           seleccionado=(self.opcion_seleccionada == indice_real))
                 self.botones_rects.append(rect)
 
+            # ----------------------------------------------------
+            # ⬇️ BLOQUE DE LECTURA SERIAL (AÑADIDO) ⬇️
+            # ----------------------------------------------------
+            if self.arduino_serial is not None and self.arduino_serial.is_open:
+                try:
+                    while self.arduino_serial.in_waiting > 0:
+                        linea = self.arduino_serial.readline().decode('utf-8').strip()
+                        
+                        evento_tipo = None
+                        evento_key = None
+
+                        if linea == "UP_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_UP
+                        elif linea == "DOWN_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_DOWN
+                        elif linea == "LEFT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_LEFT
+                        elif linea == "RIGHT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_RIGHT
+
+                        if evento_tipo is not None:
+                            # Solo nos interesan los KEYDOWN para menús
+                            evento_post = pygame.event.Event(evento_tipo, key=evento_key)
+                            pygame.event.post(evento_post)
+                            
+                except Exception as e:
+                    print(f"[ERROR SERIAL] Lectura/Conexión fallida: {e}")
+                    try:
+                        self.arduino_serial.close()
+                    except Exception:
+                        pass
+                    self.arduino_serial = None
+            # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
+            # ----------------------------------------------------
+
+
             # --- Controles ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    if self.arduino_serial and self.arduino_serial.is_open:
+                        self.arduino_serial.close()
                     pygame.quit()
                     sys.exit()
 
@@ -173,8 +219,17 @@ class Menu:
                         else:
                             self.opcion_seleccionada = (self.opcion_seleccionada + 1) % total_opciones
 
-                    elif event.key == pygame.K_LEFT and self.opcion_seleccionada == 0:
-                        self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
+                    elif event.key == pygame.K_LEFT:
+                         if self.opcion_seleccionada == 0:
+                            self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
+                         else:
+                             # En un botón principal, K_LEFT es Salir (la última opción)
+                             self.opcion_seleccionada = len(self.opciones) # Ir a "Salir"
+                             
+                             # Postear un evento K_RIGHT para "seleccionar" Salir
+                             evento_post = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RIGHT)
+                             pygame.event.post(evento_post)
+
 
                     elif event.key == pygame.K_RIGHT:
                         if self.opcion_seleccionada == 0:
@@ -182,7 +237,8 @@ class Menu:
                             if self.seleccion_horizontal == 0:
                                 self.seleccion_horizontal = 1
                             elif self.seleccion_horizontal == 1:
-                                selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx)
+                                # MODIFICADO: Pasa el arduino_serial
+                                selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx, self.arduino_serial)
                                 self.volumen_sfx = selector.mostrar()
                         else:
                             # Confirmar botón principal con →
@@ -192,12 +248,11 @@ class Menu:
                             elif seleccion in ["Elegir Mundo", "Choose World"]:
                                 return "mundo"
                             elif seleccion in ["Ver Rankings", "View Rankings"]:
-                                from mostrar_ranking import MostrarRanking
-                                pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto)
+                                # MODIFICADO: Pasa el arduino_serial
+                                pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto, self.arduino_serial)
                                 pantalla_ranking.mostrar()
                             elif seleccion in ["Salir", "Exit"]:
-                                pygame.quit()
-                                sys.exit()
+                                return "salir" # Devuelve "salir" para que main.py lo maneje
 
             pygame.display.flip()
             clock.tick(60)

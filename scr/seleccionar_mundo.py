@@ -1,12 +1,16 @@
 import pygame
 import sys
 import os
+import serial # <-- MODIFICADO: Importado
 
 class SeleccionMundo:
-    def __init__(self, ventana, ancho, alto):
+    # MODIFICADO: Añadido arduino_serial=None
+    def __init__(self, ventana, ancho, alto, arduino_serial=None):
         self.ventana = ventana
         self.ancho = ancho
         self.alto = alto
+        self.arduino_serial = arduino_serial # <-- MODIFICADO
+        
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_opciones = pygame.font.Font(None, 60)
         self.fuente_boton = pygame.font.Font(None, 55)
@@ -45,6 +49,11 @@ class SeleccionMundo:
     def dibujar_boton(self, texto, x, y, ancho, alto, seleccionado=False):
         rect = pygame.Rect(x - ancho // 2, y - alto // 2, ancho, alto)
         color = self.color_hover if seleccionado else (50, 50, 50)
+        
+        sombra_surf = pygame.Surface(rect.size, pygame.SRCALPHA)
+        pygame.draw.rect(sombra_surf, (0, 0, 0, 120), sombra_surf.get_rect(), border_radius=20)
+        self.ventana.blit(sombra_surf, rect.move(4, 4))
+        
         pygame.draw.rect(self.ventana, color, rect, border_radius=20)
         pygame.draw.rect(self.ventana, (255, 255, 255), rect, 3, border_radius=20)
         texto_surf = self.fuente_boton.render(texto, True, (255, 255, 255))
@@ -99,31 +108,85 @@ class SeleccionMundo:
             # Botón Volver
             boton_volver = self.dibujar_boton("Volver", self.ancho // 2, self.alto - 100, 250, 70, seleccionado=self.en_boton_volver)
 
-            # Eventos
+            # ----------------------------------------------------
+            # ⬇️ BLOQUE DE LECTURA SERIAL (AÑADIDO) ⬇️
+            # ----------------------------------------------------
+            if self.arduino_serial is not None and self.arduino_serial.is_open:
+                try:
+                    while self.arduino_serial.in_waiting > 0:
+                        linea = self.arduino_serial.readline().decode('utf-8').strip()
+                        
+                        evento_tipo = None
+                        evento_key = None
+
+                        if linea == "UP_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_UP
+                        elif linea == "DOWN_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_DOWN
+                        elif linea == "LEFT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_LEFT
+                        elif linea == "RIGHT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_RIGHT
+
+                        if evento_tipo is not None:
+                            evento_post = pygame.event.Event(evento_tipo, key=evento_key)
+                            pygame.event.post(evento_post)
+                            
+                except Exception as e:
+                    print(f"[ERROR SERIAL] Lectura/Conexión fallida: {e}")
+                    try:
+                        self.arduino_serial.close()
+                    except Exception:
+                        pass
+                    self.arduino_serial = None
+            # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
+            # ----------------------------------------------------
+
+
+            # Eventos (MODIFICADOS)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    if self.arduino_serial and self.arduino_serial.is_open:
+                        self.arduino_serial.close()
                     pygame.quit()
                     sys.exit()
 
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT and not self.en_boton_volver:
-                        self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
+                    if event.key == pygame.K_LEFT:
+                        if not self.en_boton_volver:
+                            self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
+                        else:
+                            return "volver" # K_LEFT en "Volver" = Volver
 
                     elif event.key == pygame.K_RIGHT:
                         if self.en_boton_volver:
                             # Confirmar volver
                             return "volver"
                         else:
-                            # Confirmar mundo
+                            # Moverse o Confirmar mundo
                             if self.seleccion_horizontal == 0:
-                                return "noche"
-                            else:
-                                return "dia"
+                                self.seleccion_horizontal = 1 # Mover Noche -> Día
+                            elif self.seleccion_horizontal == 1:
+                                # Confirmar Día
+                                return "dia" 
 
                     elif event.key == pygame.K_DOWN:
                         self.en_boton_volver = True
 
                     elif event.key == pygame.K_UP:
                         self.en_boton_volver = False
+                        
+                    elif event.key == pygame.K_RETURN: # Mantener Enter
+                        if self.en_boton_volver:
+                            return "volver"
+                        else:
+                            return "noche" if self.seleccion_horizontal == 0 else "dia"
+
+                    elif event.key == pygame.K_ESCAPE: # Mantener Escape
+                        return "volver"
 
             pygame.display.flip()

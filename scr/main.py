@@ -3,6 +3,7 @@ import random
 import sys
 import os
 import time  
+import serial # <-- MODIFICADO: Importado
 
 from game_objects import Perro, Obstaculo, Fondo, Ave
 from seleccion_personaje import SeleccionPersonaje
@@ -19,9 +20,30 @@ FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Dino")
 
+# ----------------------------------------------------
+# ⬇️ CONFIGURACIÓN Y CONEXIÓN SERIAL (GLOBAL) ⬇️
+# ----------------------------------------------------
+# ⚠️ IMPORTANTE: CAMBIA 'COM4' por el puerto de tu Arduino
+PUERTO_SERIAL = 'COM4' 
+BAUD_RATE = 9600
+
+arduino_serial = None
+try:
+    # timeout=0.1 permite que el programa no se bloquee esperando datos
+    arduino_serial = serial.Serial(PUERTO_SERIAL, BAUD_RATE, timeout=0.1)
+    time.sleep(2)  # Espera para que la conexión se establezca completamente
+    print(f"[SERIAL] Conexión con Arduino establecida en {PUERTO_SERIAL}.")
+except Exception as e:
+    print(f"[ERROR SERIAL] No se pudo conectar a Arduino en {PUERTO_SERIAL}: {e}")
+# ----------------------------------------------------
+# ⬆️ FIN CONFIGURACIÓN SERIAL ⬆️
+# ----------------------------------------------------
+
+
 # --- ELEGIR NOMBRE AL INICIO ---
 from elegir_nombre import ElegirNombre
-elegir_nombre = ElegirNombre(VENTANA, ANCHO, ALTO)
+# MODIFICADO: Se pasa el objeto arduino_serial
+elegir_nombre = ElegirNombre(VENTANA, ANCHO, ALTO, arduino_serial) 
 nombre, id_usuario = elegir_nombre.mostrar()
 print(f"Jugador: {nombre} (ID: {id_usuario})")
 
@@ -32,27 +54,6 @@ RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
 BLANCO = (255, 255, 255)
 COLOR_ESPACIO_FONDO = (30, 30, 35)
 ALTURA_SUELO = 30
-
-# ----------------------------------------------------
-# ⬇️ CONFIGURACIÓN Y CONEXIÓN SERIAL ⬇️
-# ----------------------------------------------------
-# ⚠️ IMPORTANTE: CAMBIA 'COM4' por el puerto de tu Arduino
-PUERTO_SERIAL = 'COM4' 
-BAUD_RATE = 9600
-
-# Intenta inicializar la conexión serial
-arduino_serial = None
-try:
-    # timeout=0.1 permite que el programa no se bloquee esperando datos
-    arduino_serial = serial.Serial(PUERTO_SERIAL, BAUD_RATE, timeout=0.1)
-    time.sleep(2)  # Espera para que la conexión se establezca completamente
-    # Mantenemos un mensaje inicial para saber que la conexión fue exitosa.
-    print(f"[SERIAL] Conexión con Arduino establecida en {PUERTO_SERIAL}. ¡Recuerda hacer click en la ventana del juego!")
-except Exception as e:
-    print(f"[ERROR SERIAL] No se pudo conectar a Arduino en {PUERTO_SERIAL}: {e}")
-# ----------------------------------------------------
-# ⬆️ FIN CONFIGURACIÓN SERIAL ⬆️
-# ----------------------------------------------------
 
 
 # --- FUNCIÓN PARA CARGAR IMÁGENES ---
@@ -111,7 +112,6 @@ try:
     }
 except pygame.error as e:
     print(f"Error al cargar imágenes: {e}")
-    # Cierra la conexión serial antes de salir
     if arduino_serial and arduino_serial.is_open:
         arduino_serial.close()
     pygame.quit()
@@ -132,7 +132,8 @@ cactus_small = escalar_lista(imagenes["cactus"], 82, 105)
 ave_imgs = escalar_lista(imagenes["ave"], 100, 80)
 
 # --- MENÚ PRINCIPAL ---
-menu = Menu(VENTANA, ANCHO, ALTO, 0)
+# MODIFICADO: Se pasa el objeto arduino_serial
+menu = Menu(VENTANA, ANCHO, ALTO, 0, arduino_serial) 
 menu.nombre_actual = nombre
 menu.id_usuario_actual = id_usuario
 
@@ -143,20 +144,28 @@ while True:
     if opcion_menu == "jugar":
         break
     elif opcion_menu == "mundo":
-        selector_mundo = SeleccionMundo(VENTANA, ANCHO, ALTO)
+        # MODIFICADO: Se pasa el objeto arduino_serial
+        selector_mundo = SeleccionMundo(VENTANA, ANCHO, ALTO, arduino_serial) 
         mundo_seleccionado = selector_mundo.mostrar()
         if mundo_seleccionado in ("noche", "dia"):
             mundo_actual = mundo_seleccionado
     elif opcion_menu == "salir":
-        # Cierra la conexión serial antes de salir
         if arduino_serial and arduino_serial.is_open:
             arduino_serial.close()
         pygame.quit()
         sys.exit()
 
 # --- SELECCIÓN DE PERSONAJE ---
-selector = SeleccionPersonaje(VENTANA, ANCHO, ALTO)
+# MODIFICADO: Se pasa el objeto arduino_serial
+selector = SeleccionPersonaje(VENTANA, ANCHO, ALTO, arduino_serial)
 personaje = selector.mostrar()  # 'perro' o 'gato'
+if personaje == "volver": # Si el usuario presionó "atrás" en selec. personaje
+    # Cierra la conexión serial antes de salir
+    if arduino_serial and arduino_serial.is_open:
+        arduino_serial.close()
+    pygame.quit()
+    sys.exit()
+
 
 # --- CAMBIO DE ELEMENTOS SEGÚN EL MUNDO ---
 sol_img = None
@@ -236,61 +245,76 @@ while True:
     dt = reloj.tick(FPS)
     
     # ----------------------------------------------------
-    # ⬇️ BLOQUE DE LECTURA SERIAL (SOLUCIÓN) ⬇️
+    # ⬇️ BLOQUE DE LECTURA SERIAL (MODIFICADO) ⬇️
     # ----------------------------------------------------
-    if globals().get('arduino_serial') is not None and globals()['arduino_serial'].is_open:
+    if arduino_serial is not None and arduino_serial.is_open:
         try:
-            if arduino_serial.in_waiting > 0:
+            while arduino_serial.in_waiting > 0:
                 linea = arduino_serial.readline().decode('utf-8').strip()
                 
-                if linea == "SPACE":
-                    # 🔥 ESTA ES LA SOLUCIÓN 🔥
-                    # En lugar de usar pyautogui (que es externo y bloqueante),
-                    # creamos un evento de Pygame y lo añadimos a la cola.
-                    # El bucle principal de Pygame lo procesará como si se
-                    # hubiera presionado la tecla espacio.
-                    
-                    # 1. Crear el evento de tecla presionada
-                    evento_salto = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)
-                    
-                    # 2. Publicar el evento en la cola de Pygame
-                    pygame.event.post(evento_salto)
-                    
-                    # Ya no necesitamos pyautogui.keyDown, time.sleep, 
-                    # pyautogui.keyUp ni la llamada a sonido_salto.play() aquí.
-                    # El bucle de eventos principal (for event in pygame.event.get():)
-                    # se encargará de todo, incluyendo el sonido.
+                evento_tipo = None
+                evento_key = None
+
+                if linea == "UP_DOWN":
+                    evento_tipo = pygame.KEYDOWN
+                    evento_key = pygame.K_UP
+                elif linea == "UP_UP":
+                    evento_tipo = pygame.KEYUP
+                    evento_key = pygame.K_UP
+                elif linea == "DOWN_DOWN":
+                    evento_tipo = pygame.KEYDOWN
+                    evento_key = pygame.K_DOWN
+                elif linea == "DOWN_UP":
+                    evento_tipo = pygame.KEYUP
+                    evento_key = pygame.K_DOWN
+                elif linea == "LEFT_DOWN":
+                    evento_tipo = pygame.KEYDOWN
+                    evento_key = pygame.K_LEFT
+                elif linea == "LEFT_UP":
+                    evento_tipo = pygame.KEYUP
+                    evento_key = pygame.K_LEFT
+                elif linea == "RIGHT_DOWN":
+                    evento_tipo = pygame.KEYDOWN
+                    evento_key = pygame.K_RIGHT
+                elif linea == "RIGHT_UP":
+                    evento_tipo = pygame.KEYUP
+                    evento_key = pygame.K_RIGHT
+
+                if evento_tipo is not None:
+                    evento_post = pygame.event.Event(evento_tipo, key=evento_key)
+                    pygame.event.post(evento_post)
                     
         except Exception as e:
-            # Manejo de error de conexión/lectura (ej. Arduino desconectado)
             print(f"[ERROR SERIAL] Lectura/Conexión fallida: {e}")
             try:
                 arduino_serial.close()
             except Exception:
                 pass
-            
-            # Asignamos None a la variable global para evitar más intentos
-            globals()['arduino_serial'] = None 
+            arduino_serial = None 
     # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
     # ----------------------------------------------------
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            # Cierra la conexión serial antes de salir
             if arduino_serial and arduino_serial.is_open:
                 arduino_serial.close()
             pygame.quit()
             sys.exit()
 
         if juego_activo:
+            # MODIFICADO: K_UP (o flecha arriba) ahora también es salto
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
+                # Simulamos un evento de K_SPACE para que "manejar_salto" funcione
+                event_salto = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)
+                pygame.event.post(event_salto)
+
             jugador.manejar_salto(event)
+            # K_DOWN (flecha abajo) ya es manejado por esta función
             try:
                 jugador.manejar_agacharse(event)
             except Exception:
                 pass
             
-            # El sonido de salto normal se mantiene aquí
-            # (Y AHORA TAMBIÉN RECIBE EL EVENTO DEL ARDUINO)
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 try:
                     sonido_salto.play()
@@ -298,23 +322,24 @@ while True:
                     pass
                     
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
+            # MODIFICADO: K_RIGHT (flecha derecha) ahora también reinicia
+            if event.key == pygame.K_SPACE or event.key == pygame.K_RIGHT:
                 jugador.reiniciar(ALTO, ALTURA_SUELO)
                 obstaculos.empty()
                 aves.empty()
                 puntaje = 0
-                velocidad_juego = 5.5
+                velocidad_juego = 7.5 # Reiniciado a 7.5
                 juego_activo = True
                 tiempo_ultimo_obstaculo = pygame.time.get_ticks()
                 tiempo_ultima_ave = pygame.time.get_ticks()
                 intervalo_cactus = random.randint(1000, 3000)
                 intervalo_ave = random.randint(4000, 8000)
-            elif event.key == pygame.K_ESCAPE:
+            # MODIFICADO: K_LEFT (flecha izquierda) ahora también vuelve al menú
+            elif event.key == pygame.K_ESCAPE or event.key == pygame.K_LEFT:
                 menu.record_actual = record
                 opcion = menu.mostrar()
                 actualizar_volumen_sfx()
                 if opcion != "jugar":
-                    # Cierra la conexión serial antes de salir
                     if arduino_serial and arduino_serial.is_open:
                         arduino_serial.close()
                     pygame.quit()
@@ -450,7 +475,8 @@ while True:
 
     if not juego_activo:
         VENTANA.blit(imagenes["game_over"], imagenes["game_over"].get_rect(center=(ANCHO // 2, ALTO // 2 - 30)))
-        mostrar_texto("Presiona ESPACIO para reiniciar", ANCHO // 2, ALTO // 2 + 90, BLANCO, VENTANA, centrado=True)
-        mostrar_texto("Presiona ESC para volver al menú", ANCHO // 2, ALTO // 2 + 140, BLANCO, VENTANA, centrado=True)
+        # MODIFICADO: Textos actualizados para reflejar los nuevos controles
+        mostrar_texto("Presiona DERECHA o ESPACIO para reiniciar", ANCHO // 2, ALTO // 2 + 90, BLANCO, VENTANA, centrado=True)
+        mostrar_texto("Presiona IZQUIERDA o ESC para volver al menú", ANCHO // 2, ALTO // 2 + 140, BLANCO, VENTANA, centrado=True)
 
     pygame.display.flip()

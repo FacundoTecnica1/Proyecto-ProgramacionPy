@@ -1,12 +1,15 @@
 import pygame
 import mysql.connector
 import sys
+import serial # <-- MODIFICADO: Importado
 
 class MostrarRanking:
-    def __init__(self, pantalla, ancho, alto):
+    # MODIFICADO: Añadido arduino_serial=None
+    def __init__(self, pantalla, ancho, alto, arduino_serial=None):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
+        self.arduino_serial = arduino_serial # <-- MODIFICADO
 
         # --- Fuentes estilo arcade ---
         self.fuente_titulo = pygame.font.Font(None, 90)
@@ -21,7 +24,7 @@ class MostrarRanking:
         self.color_puntaje = (255, 223, 0)
         self.color_sombra = (0, 0, 0)
         self.color_boton = (80, 80, 80)
-        self.color_boton_hover = (200, 180, 50)
+        self.color_boton_hover = (200, 180, 50) # Este es el color "seleccionado"
 
         # --- Fondo e imágenes ---
         self.fondo = pygame.image.load("img/fondo.png").convert()
@@ -76,7 +79,9 @@ class MostrarRanking:
         glow = 0
         glow_dir = 1
         boton_rect = pygame.Rect(self.ancho // 2 - 120, self.alto - 100, 240, 70)
-        seleccionado = False
+        
+        # En esta pantalla, el botón "Volver" está siempre seleccionado
+        seleccionado = True 
 
         while True:
             # Fondo
@@ -119,6 +124,8 @@ class MostrarRanking:
                 tamanios_medalla = [(160, 180), (150, 170), (150, 170)]
 
                 for i, (nombre, puntaje) in enumerate(top3):
+                    if i >= len(top3): break # Seguridad
+                        
                     x, y = posiciones[i]
 
                     # Cuadro
@@ -138,9 +145,8 @@ class MostrarRanking:
                                                   self.color_puntaje, x, y + 95, centro=True)
 
             # --- Botón Volver ---
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            hover = boton_rect.collidepoint(mouse_x, mouse_y)
-            color = self.color_boton_hover if hover else self.color_boton
+            # MODIFICADO: Siempre seleccionado
+            color = self.color_boton_hover
 
             pygame.draw.rect(self.pantalla, color, boton_rect, border_radius=20)
             pygame.draw.rect(self.pantalla, (0, 0, 0), boton_rect, 3, border_radius=20)
@@ -148,21 +154,58 @@ class MostrarRanking:
             self.dibujar_texto_con_sombra("VOLVER", self.fuente_boton,
                                           (255, 255, 255), boton_rect.centerx, boton_rect.centery, centro=True)
 
-            # --- Eventos ---
+            # ----------------------------------------------------
+            # ⬇️ BLOQUE DE LECTURA SERIAL (AÑADIDO) ⬇️
+            # ----------------------------------------------------
+            if self.arduino_serial is not None and self.arduino_serial.is_open:
+                try:
+                    while self.arduino_serial.in_waiting > 0:
+                        linea = self.arduino_serial.readline().decode('utf-8').strip()
+                        
+                        evento_tipo = None
+                        evento_key = None
+
+                        # Solo nos importa K_LEFT o K_RIGHT para volver
+                        if linea == "LEFT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_LEFT
+                        elif linea == "RIGHT_DOWN":
+                            evento_tipo = pygame.KEYDOWN
+                            evento_key = pygame.K_RIGHT
+
+                        if evento_tipo is not None:
+                            evento_post = pygame.event.Event(evento_tipo, key=evento_key)
+                            pygame.event.post(evento_post)
+                            
+                except Exception as e:
+                    print(f"[ERROR SERIAL] Lectura/Conexión fallida: {e}")
+                    try:
+                        self.arduino_serial.close()
+                    except Exception:
+                        pass
+                    self.arduino_serial = None
+            # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
+            # ----------------------------------------------------
+
+            # --- Eventos (MODIFICADOS) ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    if self.arduino_serial and self.arduino_serial.is_open:
+                        self.arduino_serial.close()
                     pygame.quit()
                     sys.exit()
 
                 elif event.type == pygame.KEYDOWN:
+                    # MODIFICADO: K_LEFT o K_RIGHT te sacan
                     if event.key == pygame.K_ESCAPE:
                         return
-                    elif event.key == pygame.K_RETURN and hover:
+                    elif event.key == pygame.K_LEFT:
+                        return
+                    elif event.key == pygame.K_RIGHT:
+                        return
+                    elif event.key == pygame.K_RETURN:
                         return
 
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if hover:
-                        return
 
             pygame.display.flip()
             clock.tick(60)
