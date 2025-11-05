@@ -1,40 +1,107 @@
-// Configuración de pines
-const int boton = 2; // Pin donde está conectado tu botón
-const int led = 13;  // LED integrado (opcional)
+/*
+  SKETCH DE CONTROL PARA JUEGO PYGAME (4 BOTONES + LED)
+  - D2: Botón Arriba (UP)
+  - D3: Botón Derecha/Enter (RIGHT)
+  - D4: Botón Abajo (DOWN)
+  - D5: Botón Izquierda/Escape (LEFT)
+  - D13: LED indicador
+*/
 
-// Variables para el manejo del estado y antirebote (debounce)
-int estadoBotonAnterior = HIGH; // Estado del botón en el ciclo anterior
-long tiempoUltimaPulsacion = 0; // Almacena el último tiempo de pulsación
-const long retardoDebounce = 50; // Retardo mínimo entre pulsaciones (50ms)
+// --- Configuración de Pines ---
+const int BOTON_UP = 2;
+const int BOTON_RIGHT = 3; // D3 -> Flecha Derecha / Enter
+const int BOTON_DOWN = 4;
+const int BOTON_LEFT = 5;  // D5 -> Flecha Izquierda / Escape
+const int LED = 13;
+
+// --- Variables de Estado (para antirebote) ---
+int estadoUpAnterior = HIGH;
+int estadoRightAnterior = HIGH;
+int estadoDownAnterior = HIGH;
+int estadoLeftAnterior = HIGH;
+
+// --- Tiempos de Antirebote (Debounce) ---
+long tiempoUltimoUp = 0;
+long tiempoUltimoRight = 0;
+long tiempoUltimoDown = 0;
+long tiempoUltimoLeft = 0;
+const long retardoDebounce = 50; // 50 milisegundos
 
 void setup() {
-  Serial.begin(9600);           // Inicia la comunicación serial
-  pinMode(led, OUTPUT);
-  pinMode(boton, INPUT_PULLUP); // Botón con resistencia pull-up
+  Serial.begin(9600); // Inicia la comunicación serial
+  
+  // Configurar pines de botones como entrada con resistencia PULLUP interna
+  pinMode(BOTON_UP, INPUT_PULLUP);
+  pinMode(BOTON_RIGHT, INPUT_PULLUP);
+  pinMode(BOTON_DOWN, INPUT_PULLUP);
+  pinMode(BOTON_LEFT, INPUT_PULLUP);
+  
+  // Configurar LED como salida
+  pinMode(LED, OUTPUT);
 }
 
 void loop() {
-  // Lee el estado actual del botón
-  int estadoBotonActual = digitalRead(boton);
+  // Obtener el tiempo actual una sola vez
+  long tiempoActual = millis();
 
-  // 1. Detectar si el botón acaba de ser presionado (cambio de HIGH a LOW)
-  // 2. Asegurarse de que ha pasado suficiente tiempo desde la última pulsación
-  if (estadoBotonActual == LOW && estadoBotonAnterior == HIGH && (millis() - tiempoUltimaPulsacion) > retardoDebounce) {
-    
-    // El botón ha sido presionado de forma válida
-    digitalWrite(led, HIGH);    // Enciende el LED
-    
-    // **ENVÍA EL COMANDO AL SCRIPT DE PYTHON**
-    Serial.println("SPACE"); 
-    
-    tiempoUltimaPulsacion = millis(); // Actualiza el tiempo de la última pulsación
+  // --- Leer el estado actual de los botones ---
+  int estadoUp = digitalRead(BOTON_UP);
+  int estadoRight = digitalRead(BOTON_RIGHT);
+  int estadoDown = digitalRead(BOTON_DOWN);
+  int estadoLeft = digitalRead(BOTON_LEFT);
+
+  // --- Manejo del Botón UP (D2) ---
+  if (estadoUp != estadoUpAnterior && (tiempoActual - tiempoUltimoUp) > retardoDebounce) {
+    if (estadoUp == LOW) {
+      Serial.println("UP_DOWN"); // Mensaje al presionar
+    } else {
+      Serial.println("UP_UP");   // Mensaje al soltar
+    }
+    tiempoUltimoUp = tiempoActual;
+    estadoUpAnterior = estadoUp;
   }
 
-  // 3. Apagar el LED cuando el botón se suelta
-  if (estadoBotonActual == HIGH) {
-    digitalWrite(led, LOW);
+  // --- Manejo del Botón RIGHT (D3) ---
+  if (estadoRight != estadoRightAnterior && (tiempoActual - tiempoUltimoRight) > retardoDebounce) {
+    if (estadoRight == LOW) {
+      Serial.println("RIGHT_DOWN"); // Mensaje al presionar
+    } else {
+      Serial.println("RIGHT_UP");   // Mensaje al soltar
+    }
+    tiempoUltimoRight = tiempoActual;
+    estadoRightAnterior = estadoRight;
   }
-  
-  // Actualiza el estado del botón para el próximo ciclo
-  estadoBotonAnterior = estadoBotonActual;
+
+  // --- Manejo del Botón DOWN (D4) ---
+  if (estadoDown != estadoDownAnterior && (tiempoActual - tiempoUltimoDown) > retardoDebounce) {
+    if (estadoDown == LOW) {
+      Serial.println("DOWN_DOWN"); // Mensaje al presionar
+    } else {
+      Serial.println("DOWN_UP");   // Mensaje al soltar
+    }
+    tiempoUltimoDown = tiempoActual;
+    estadoDownAnterior = estadoDown;
+  }
+
+  // --- Manejo del Botón LEFT (D5) ---
+  if (estadoLeft != estadoLeftAnterior && (tiempoActual - tiempoUltimoLeft) > retardoDebounce) {
+    if (estadoLeft == LOW) {
+      Serial.println("LEFT_DOWN"); // Mensaje al presionar
+    } else {
+      Serial.println("LEFT_UP");   // Mensaje al soltar
+    }
+    tiempoUltimoLeft = tiempoActual;
+    estadoLeftAnterior = estadoLeft;
+  }
+
+  // --- Manejo del LED (D13) ---
+  // El LED se enciende si CUALQUIER botón está presionado (LOW)
+  if (estadoUp == LOW || estadoRight == LOW || estadoDown == LOW || estadoLeft == LOW) {
+    digitalWrite(LED, HIGH);
+  } else {
+    digitalWrite(LED, LOW);
+  }
+
+  // Pequeña pausa para estabilizar el bucle
+  delay(5);
 }
