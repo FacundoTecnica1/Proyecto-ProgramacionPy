@@ -4,12 +4,30 @@ import os
 import serial # <-- MODIFICADO: Importado
 
 class SeleccionMundo:
-    # MODIFICADO: Añadido arduino_serial=None
-    def __init__(self, ventana, ancho, alto, arduino_serial=None):
+    # MODIFICADO: Añadido arduino_serial=None e idioma
+    def __init__(self, ventana, ancho, alto, arduino_serial=None, idioma="es"):
         self.ventana = ventana
         self.ancho = ancho
         self.alto = alto
         self.arduino_serial = arduino_serial # <-- MODIFICADO
+        self.idioma = idioma
+
+        # --- Textos Multi-idioma ---
+        self.textos = {
+            "es": {
+                "titulo": "SELECCIONAR MUNDO",
+                "noche": "MUNDO NOCHE",
+                "dia": "MUNDO DÍA",
+                "volver": "Volver"
+            },
+            "en": {
+                "titulo": "SELECT WORLD",
+                "noche": "NIGHT WORLD",
+                "dia": "DAY WORLD",
+                "volver": "Back"
+            }
+        }
+        self.txt = self.textos[self.idioma]
         
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_opciones = pygame.font.Font(None, 60)
@@ -79,7 +97,7 @@ class SeleccionMundo:
             self.ventana.blit(overlay, (0, 0))
 
             # Título
-            self.dibujar_texto("SELECCIONAR MUNDO", self.fuente_titulo, (255, 255, 255), self.ancho // 2, 100)
+            self.dibujar_texto(self.txt["titulo"], self.fuente_titulo, (255, 255, 255), self.ancho // 2, 100)
 
             # Botones de mundos
             boton_noche = pygame.Rect(self.ancho // 2 - 300, self.alto // 2 - 100, 250, 180)
@@ -102,11 +120,11 @@ class SeleccionMundo:
             self.ventana.blit(self.sol, (boton_dia.centerx - 60, boton_dia.top + 10))
 
             # Textos de mundos
-            self.dibujar_texto("MUNDO NOCHE", self.fuente_opciones, self.color_noche, boton_noche.centerx, boton_noche.bottom - 30)
-            self.dibujar_texto("MUNDO DÍA", self.fuente_opciones, self.color_dia, boton_dia.centerx, boton_dia.bottom - 30)
+            self.dibujar_texto(self.txt["noche"], self.fuente_opciones, self.color_noche, boton_noche.centerx, boton_noche.bottom - 30)
+            self.dibujar_texto(self.txt["dia"], self.fuente_opciones, self.color_dia, boton_dia.centerx, boton_dia.bottom - 30)
 
             # Botón Volver
-            boton_volver = self.dibujar_boton("Volver", self.ancho // 2, self.alto - 100, 250, 70, seleccionado=self.en_boton_volver)
+            boton_volver = self.dibujar_boton(self.txt["volver"], self.ancho // 2, self.alto - 100, 250, 70, seleccionado=self.en_boton_volver)
 
             # ----------------------------------------------------
             # ⬇️ BLOQUE DE LECTURA SERIAL (AÑADIDO) ⬇️
@@ -147,7 +165,7 @@ class SeleccionMundo:
             # ----------------------------------------------------
 
 
-            # Eventos (MODIFICADOS)
+            # Eventos (MODIFICADOS PARA ARDUINO)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     if self.arduino_serial and self.arduino_serial.is_open:
@@ -156,28 +174,23 @@ class SeleccionMundo:
                     sys.exit()
 
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
-                        if not self.en_boton_volver:
-                            self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
-                        else:
-                            return "volver" # K_LEFT en "Volver" = Volver
-
-                    elif event.key == pygame.K_RIGHT:
+                    if event.key == pygame.K_LEFT: # D5
                         if self.en_boton_volver:
-                            # Confirmar volver
-                            return "volver"
+                            return "volver" # K_LEFT (D5) en Volver = Volver
                         else:
-                            # Moverse o Confirmar mundo
-                            if self.seleccion_horizontal == 0:
-                                self.seleccion_horizontal = 1 # Mover Noche -> Día
-                            elif self.seleccion_horizontal == 1:
-                                # Confirmar Día
-                                return "dia" 
+                            self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
 
-                    elif event.key == pygame.K_DOWN:
+                    elif event.key == pygame.K_RIGHT: # D3
+                        if self.en_boton_volver:
+                            return "volver" # K_RIGHT (D3) en Volver = Volver
+                        else:
+                            # K_RIGHT (D3) es CONFIRMAR
+                            return "noche" if self.seleccion_horizontal == 0 else "dia"
+
+                    elif event.key == pygame.K_DOWN: # D4
                         self.en_boton_volver = True
 
-                    elif event.key == pygame.K_UP:
+                    elif event.key == pygame.K_UP: # D2
                         self.en_boton_volver = False
                         
                     elif event.key == pygame.K_RETURN: # Mantener Enter

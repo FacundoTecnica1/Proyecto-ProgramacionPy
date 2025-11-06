@@ -4,12 +4,28 @@ import sys
 import serial # <-- MODIFICADO: Importado
 
 class MostrarRanking:
-    # MODIFICADO: Añadido arduino_serial=None
-    def __init__(self, pantalla, ancho, alto, arduino_serial=None):
+    # MODIFICADO: Añadido arduino_serial=None e idioma
+    def __init__(self, pantalla, ancho, alto, arduino_serial=None, idioma="es"):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
         self.arduino_serial = arduino_serial # <-- MODIFICADO
+        self.idioma = idioma
+
+        # --- Textos Multi-idioma ---
+        self.textos = {
+            "es": {
+                "titulo": "🏆 Top 3 Records",
+                "no_records": "No hay récords todavía",
+                "volver": "VOLVER"
+            },
+            "en": {
+                "titulo": "🏆 Top 3 High Scores",
+                "no_records": "No records yet",
+                "volver": "BACK"
+            }
+        }
+        self.txt = self.textos[self.idioma]
 
         # --- Fuentes estilo arcade ---
         self.fuente_titulo = pygame.font.Font(None, 90)
@@ -101,7 +117,7 @@ class MostrarRanking:
             color_brillo = (r, g, b)
 
             # --- Título principal ---
-            self.dibujar_texto_con_sombra("🏆 Top 3 Records",
+            self.dibujar_texto_con_sombra(self.txt["titulo"],
                                           self.fuente_titulo,
                                           color_brillo,
                                           self.ancho // 2, 90, centro=True)
@@ -109,7 +125,7 @@ class MostrarRanking:
             top3 = self.obtener_top3()
 
             if not top3:
-                self.dibujar_texto_con_sombra("No hay récords todavía",
+                self.dibujar_texto_con_sombra(self.txt["no_records"],
                                               self.fuente_info,
                                               self.color_titulo,
                                               self.ancho // 2,
@@ -151,7 +167,7 @@ class MostrarRanking:
             pygame.draw.rect(self.pantalla, color, boton_rect, border_radius=20)
             pygame.draw.rect(self.pantalla, (0, 0, 0), boton_rect, 3, border_radius=20)
 
-            self.dibujar_texto_con_sombra("VOLVER", self.fuente_boton,
+            self.dibujar_texto_con_sombra(self.txt["volver"], self.fuente_boton,
                                           (255, 255, 255), boton_rect.centerx, boton_rect.centery, centro=True)
 
             # ----------------------------------------------------
@@ -165,7 +181,7 @@ class MostrarRanking:
                         evento_tipo = None
                         evento_key = None
 
-                        # Solo nos importa K_LEFT o K_RIGHT para volver
+                        # Solo nos importa K_LEFT (D5) o K_RIGHT (D3) para volver
                         if linea == "LEFT_DOWN":
                             evento_tipo = pygame.KEYDOWN
                             evento_key = pygame.K_LEFT
@@ -196,12 +212,12 @@ class MostrarRanking:
                     sys.exit()
 
                 elif event.type == pygame.KEYDOWN:
-                    # MODIFICADO: K_LEFT o K_RIGHT te sacan
+                    # MODIFICADO: K_LEFT (D5) o K_RIGHT (D3) te sacan
                     if event.key == pygame.K_ESCAPE:
                         return
-                    elif event.key == pygame.K_LEFT:
+                    elif event.key == pygame.K_LEFT: # D5
                         return
-                    elif event.key == pygame.K_RIGHT:
+                    elif event.key == pygame.K_RIGHT: # D3
                         return
                     elif event.key == pygame.K_RETURN:
                         return

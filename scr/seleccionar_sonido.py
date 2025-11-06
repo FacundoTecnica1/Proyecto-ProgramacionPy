@@ -4,13 +4,29 @@ import os
 import serial # <-- MODIFICADO: Importado
 
 class SelectorSonido:
-    # MODIFICADO: Añadido arduino_serial=None
-    def __init__(self, pantalla, ancho, alto, volumen_sfx=0.5, arduino_serial=None):
+    # MODIFICADO: Añadido arduino_serial=None e idioma
+    def __init__(self, pantalla, ancho, alto, volumen_sfx=0.5, arduino_serial=None, idioma="es"):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
         self.volumen_sfx = volumen_sfx
         self.arduino_serial = arduino_serial # <-- MODIFICADO
+        self.idioma = idioma
+
+        # --- Textos Multi-idioma ---
+        self.textos = {
+            "es": {
+                "titulo": "Volumen Efectos",
+                "efectos": "Efectos",
+                "volver": "Volver"
+            },
+            "en": {
+                "titulo": "SFX Volume",
+                "efectos": "Effects",
+                "volver": "Back"
+            }
+        }
+        self.txt = self.textos[self.idioma]
 
         self.en_volumen = True  # True: ajustar volumen / False: botón volver
 
@@ -94,7 +110,7 @@ class SelectorSonido:
             self.pantalla.blit(overlay, (0,0))
 
             # Título (fuera del panel)
-            titulo = self.fuente_titulo.render("Volumen Efectos", True, self.color_titulo)
+            titulo = self.fuente_titulo.render(self.txt["titulo"], True, self.color_titulo)
             self.pantalla.blit(titulo, titulo.get_rect(center=(self.ancho // 2, panel_rect.top - 60)))
 
             # Panel negro con bordes redondeados y borde gris
@@ -104,7 +120,7 @@ class SelectorSonido:
             self.pantalla.blit(panel_surface, panel_rect)
 
             # Texto “Efectos”
-            texto = self.fuente_texto.render("Efectos", True, self.color_texto)
+            texto = self.fuente_texto.render(self.txt["efectos"], True, self.color_texto)
             self.pantalla.blit(texto, texto.get_rect(midright=(self.ancho // 2 - 250, panel_rect.centery - 10)))
 
             # Barra dentro del panel
@@ -120,7 +136,7 @@ class SelectorSonido:
                 color_borde_boton = self.color_barra_borde_sel
             pygame.draw.rect(self.pantalla, color_borde_boton, boton_rect, 3, border_radius=15)
             
-            txt_boton = self.fuente_boton.render("Volver", True, self.color_texto)
+            txt_boton = self.fuente_boton.render(self.txt["volver"], True, self.color_texto)
             self.pantalla.blit(txt_boton, txt_boton.get_rect(center=boton_rect.center))
 
             # ----------------------------------------------------
@@ -162,7 +178,7 @@ class SelectorSonido:
             # ----------------------------------------------------
 
 
-            # Eventos (MODIFICADOS)
+            # Eventos (MODIFICADOS PARA ARDUINO)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     if self.arduino_serial and self.arduino_serial.is_open:
@@ -170,24 +186,29 @@ class SelectorSonido:
                     pygame.quit()
                     sys.exit()
                 elif event.type == pygame.KEYDOWN:
-                    if self.en_volumen:
-                        if event.key == pygame.K_LEFT:
+                    
+                    if event.key == pygame.K_LEFT: # D5 = Volver / Bajar volumen
+                        if self.en_volumen:
                             self.volumen_sfx = max(0, self.volumen_sfx - 0.05)
-                        elif event.key == pygame.K_RIGHT:
+                        else: # Estamos en "Volver"
+                            corriendo = False # K_LEFT (D5) te saca
+                    
+                    elif event.key == pygame.K_RIGHT: # D3 = Confirmar / Subir volumen
+                        if self.en_volumen:
                             self.volumen_sfx = min(1, self.volumen_sfx + 0.05)
-                        elif event.key == pygame.K_DOWN:
-                            self.en_volumen = False
-                        elif event.key == pygame.K_SPACE: # Para probar el sonido
-                            if self.salto_sonido:
-                                self.actualizar_volumen()
-                                self.salto_sonido.play()
-                    else: # Estamos en "Volver"
-                        if event.key == pygame.K_UP:
-                            self.en_volumen = True
-                        elif event.key == pygame.K_RIGHT: # Seleccionar Volver
-                            corriendo = False
-                        elif event.key == pygame.K_LEFT: # Ir Atrás
-                            corriendo = False
+                        else: # Estamos en "Volver"
+                            corriendo = False # K_RIGHT (D3) confirma y te saca
+                    
+                    elif event.key == pygame.K_DOWN: # D4
+                        self.en_volumen = False # Ir a "Volver"
+                        
+                    elif event.key == pygame.K_UP: # D2
+                        self.en_volumen = True # Ir a "Volumen"
+                        
+                    elif event.key == pygame.K_SPACE: # Para probar el sonido
+                        if self.salto_sonido and self.en_volumen:
+                            self.actualizar_volumen()
+                            self.salto_sonido.play()
                     
                     if event.key == pygame.K_ESCAPE: # Salir con Escape
                         corriendo = False

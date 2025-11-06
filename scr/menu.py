@@ -17,8 +17,9 @@ class Menu:
         # --- Idioma actual ---
         self.idioma = "es"
         self.textos = {
-            "es": ["Jugar", "Elegir Mundo", "Ver Rankings", "Salir"],
-            "en": ["Play", "Choose World", "View Rankings", "Exit"]
+            # MODIFICADO: Añadido "Elegir Personaje"
+            "es": ["Jugar", "Elegir Mundo", "Elegir Personaje", "Ver Rankings", "Salir"],
+            "en": ["Play", "Choose World", "Choose Character", "View Rankings", "Exit"]
         }
 
         self.opciones = self.textos[self.idioma]
@@ -127,12 +128,15 @@ class Menu:
             self.pantalla.blit(titulo_surf, titulo_rect)
 
             # --- Info jugador ---
+            texto_record_es = f"Record: {self.record_actual}"
+            texto_record_en = f"High Score: {self.record_actual}"
+            texto_record = texto_record_es if self.idioma == "es" else texto_record_en
+            
             if self.nombre_actual:
-                texto_record = f"Record: {self.record_actual}"
                 texto_jugador = f"Jugador: {self.nombre_actual}" if self.idioma == "es" else f"Player: {self.nombre_actual}"
                 texto_completo = f"{texto_record}    |    {texto_jugador}"
             else:
-                texto_completo = f"Record: {self.record_actual}"
+                texto_completo = texto_record
 
             texto_surf = self.fuente_record.render(texto_completo, True, (230, 230, 230))
             texto_rect = texto_surf.get_rect(center=(self.ancho // 2, 165))
@@ -147,8 +151,8 @@ class Menu:
 
             # --- Botones principales ---
             self.botones_rects.clear()
-            espacio_vertical = 100
-            inicio_y = self.alto // 2 - 100
+            espacio_vertical = 85 # MODIFICADO: Menos espacio para que quepan 5 opciones
+            inicio_y = self.alto // 2 - 120 # MODIFICADO: Subir un poco
             x_centro = self.ancho // 2
 
             for i, opcion in enumerate(self.opciones):
@@ -198,7 +202,7 @@ class Menu:
             # ----------------------------------------------------
 
 
-            # --- Controles ---
+            # --- Controles (MODIFICADOS) ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     if self.arduino_serial and self.arduino_serial.is_open:
@@ -207,49 +211,49 @@ class Menu:
                     sys.exit()
 
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
+                    if event.key == pygame.K_UP: # D2
                         if self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0:
-                            self.cambiar_idioma()
+                            self.cambiar_idioma() # Cambiar idioma con UP
                         else:
                             self.opcion_seleccionada = (self.opcion_seleccionada - 1) % total_opciones
 
-                    elif event.key == pygame.K_DOWN:
+                    elif event.key == pygame.K_DOWN: # D4
                         if self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0:
-                            self.cambiar_idioma()
+                            self.cambiar_idioma() # Cambiar idioma con DOWN
                         else:
                             self.opcion_seleccionada = (self.opcion_seleccionada + 1) % total_opciones
 
-                    elif event.key == pygame.K_LEFT:
+                    elif event.key == pygame.K_LEFT: # D5
                          if self.opcion_seleccionada == 0:
                             self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
-                         else:
-                             # En un botón principal, K_LEFT es Salir (la última opción)
-                             self.opcion_seleccionada = len(self.opciones) # Ir a "Salir"
-                             
-                             # Postear un evento K_RIGHT para "seleccionar" Salir
-                             evento_post = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_RIGHT)
-                             pygame.event.post(evento_post)
+                         # MODIFICADO: Si se presiona IZQUIERDA en un botón, no hace nada.
+                         # else:
+                         #    No hacer nada (no salir del juego)
 
 
-                    elif event.key == pygame.K_RIGHT:
+                    elif event.key == pygame.K_RIGHT: # D3
                         if self.opcion_seleccionada == 0:
                             # Barra de configuración
                             if self.seleccion_horizontal == 0:
-                                self.seleccion_horizontal = 1
+                                self.seleccion_horizontal = 1 # Mover a Música
                             elif self.seleccion_horizontal == 1:
-                                # MODIFICADO: Pasa el arduino_serial
-                                selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx, self.arduino_serial)
+                                # MODIFICADO: Pasa el arduino_serial y el idioma
+                                selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx, self.arduino_serial, self.idioma)
                                 self.volumen_sfx = selector.mostrar()
                         else:
-                            # Confirmar botón principal con →
+                            # Confirmar botón principal con DERECHA (D3)
                             seleccion = self.opciones[self.opcion_seleccionada - 1]
+                            
                             if seleccion in ["Jugar", "Play"]:
                                 return "jugar"
                             elif seleccion in ["Elegir Mundo", "Choose World"]:
                                 return "mundo"
+                            # MODIFICADO: Nueva opción
+                            elif seleccion in ["Elegir Personaje", "Choose Character"]:
+                                return "personaje"
                             elif seleccion in ["Ver Rankings", "View Rankings"]:
-                                # MODIFICADO: Pasa el arduino_serial
-                                pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto, self.arduino_serial)
+                                # MODIFICADO: Pasa el arduino_serial y el idioma
+                                pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto, self.arduino_serial, self.idioma)
                                 pantalla_ranking.mostrar()
                             elif seleccion in ["Salir", "Exit"]:
                                 return "salir" # Devuelve "salir" para que main.py lo maneje

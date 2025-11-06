@@ -4,12 +4,15 @@ import sys
 import os
 import time  
 import serial # <-- MODIFICADO: Importado
+import mysql.connector # <-- MODIFICADO: Importado para guardar puntaje
 
+# Importar todas las clases necesarias
 from game_objects import Perro, Obstaculo, Fondo, Ave
 from seleccion_personaje import SeleccionPersonaje
 from utils import mostrar_texto
 from menu import Menu
 from seleccionar_mundo import SeleccionMundo
+from elegir_nombre import ElegirNombre
 
 pygame.init()
 pygame.mixer.init()
@@ -41,11 +44,10 @@ except Exception as e:
 
 
 # --- ELEGIR NOMBRE AL INICIO ---
-from elegir_nombre import ElegirNombre
 # MODIFICADO: Se pasa el objeto arduino_serial
 elegir_nombre = ElegirNombre(VENTANA, ANCHO, ALTO, arduino_serial) 
-nombre, id_usuario = elegir_nombre.mostrar()
-print(f"Jugador: {nombre} (ID: {id_usuario})")
+nombre_jugador, id_usuario = elegir_nombre.mostrar()
+print(f"Jugador: {nombre_jugador} (ID: {id_usuario})")
 
 # --- RUTA DE IMÁGENES ---
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
@@ -75,9 +77,9 @@ def escalar_y_cuadrar(img, size):
     lienzo.blit(img_escalada, ((size - new_w) // 2, (size - new_h) // 2))
     return lienzo
 
-# --- CARGA BASE DE IMÁGENES ---
+# --- CARGA BASE DE IMÁGENES (Se cargan todas ahora) ---
 try:
-    imagenes = {
+    imagenes_base = {
         'perro_run': [
             cargar_imagen("perro_run1.png"),
             cargar_imagen("perro_run2.png"),
@@ -96,18 +98,25 @@ try:
         'gato_jump': cargar_imagen("gato_jump.png"),
         'gato_air': cargar_imagen("gato_air.png"),
 
-        'cactus': [
+        'cactus_noche': [
             cargar_imagen("cactus1.png"),
             cargar_imagen("cactus2.png"),
             cargar_imagen("cactus3.png")
+        ],
+        'cactus_dia': [
+            cargar_imagen("cactus_verde1.png"),
+            cargar_imagen("cactus_verde2.png"),
+            cargar_imagen("cactus_verde3.png")
         ],
         'ave': [
             cargar_imagen("ave1.png"),
             cargar_imagen("ave2.png"),
             cargar_imagen("ave3.png")
         ],
-        'fondo': pygame.image.load(os.path.join(RUTA_BASE, "fondo.png")).convert(),
+        'fondo_noche': pygame.image.load(os.path.join(RUTA_BASE, "fondo.png")).convert(),
+        'fondo_dia': pygame.image.load(os.path.join(RUTA_BASE, "fondo2.png")).convert(),
         'luna': cargar_imagen("luna.png"),
+        'sol': cargar_imagen("sol.png"),
         'game_over': cargar_imagen("game_over.png")
     }
 except pygame.error as e:
@@ -118,365 +127,341 @@ except pygame.error as e:
     sys.exit()
 
 # --- ESCALAS ---
-imagenes['fondo'] = pygame.transform.scale(imagenes['fondo'], (ANCHO, ALTO))
-luna_img = pygame.transform.scale(imagenes['luna'], (75, 75))
+imagenes_base['fondo_noche'] = pygame.transform.scale(imagenes_base['fondo_noche'], (ANCHO, ALTO))
+imagenes_base['fondo_dia'] = pygame.transform.scale(imagenes_base['fondo_dia'], (ANCHO, ALTO))
+imagenes_base['luna'] = pygame.transform.scale(imagenes_base['luna'], (75, 75))
+imagenes_base['sol'] = pygame.transform.scale(imagenes_base['sol'], (80, 80))
 
-perro_run = [escalar_y_cuadrar(img, 150) for img in imagenes["perro_run"]]
-gato_run = [escalar_y_cuadrar(img, 150) for img in imagenes["gato_run"]]
-perro_jump = escalar_y_cuadrar(imagenes["perro_jump"], 150)
-perro_air = escalar_y_cuadrar(imagenes["perro_air"], 150)
-gato_jump = escalar_y_cuadrar(imagenes["gato_jump"], 150)
-gato_air = escalar_y_cuadrar(imagenes["gato_air"], 150)
-cactus_imgs = escalar_lista(imagenes["cactus"], 110, 140)
-cactus_small = escalar_lista(imagenes["cactus"], 82, 105)
-ave_imgs = escalar_lista(imagenes["ave"], 100, 80)
+# Personajes
+perro_run = [escalar_y_cuadrar(img, 150) for img in imagenes_base["perro_run"]]
+gato_run = [escalar_y_cuadrar(img, 150) for img in imagenes_base["gato_run"]]
+perro_jump = escalar_y_cuadrar(imagenes_base["perro_jump"], 150)
+perro_air = escalar_y_cuadrar(imagenes_base["perro_air"], 150)
+gato_jump = escalar_y_cuadrar(imagenes_base["gato_jump"], 150)
+gato_air = escalar_y_cuadrar(imagenes_base["gato_air"], 150)
+ave_imgs = escalar_lista(imagenes_base["ave"], 100, 80)
+
+# Cactus (se escalarán dentro de bucle_juego)
+cactus_noche_imgs = imagenes_base["cactus_noche"]
+cactus_dia_imgs = imagenes_base["cactus_dia"]
+
+
+# --- SONIDOS DE EFECTOS ---
+sonido_salto = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoSalto.mp3"))
+sonido_gameover = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoGameOver.mp3"))
+
+def actualizar_volumen_sfx(volumen):
+    sonido_salto.set_volume(volumen)
+    sonido_gameover.set_volume(volumen)
+
+# =================================================================
+# ⬇️ NUEVA FUNCIÓN: BUCLE_JUEGO ⬇️
+# =================================================================
+def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, volumen_sfx, record_previo):
+    
+    # ⬇️⬇️⬇️ ESTA ES LA LÍNEA AÑADIDA ⬇️⬇️⬇️
+    global arduino_serial 
+    # ⬆️⬆️⬆️ ESTA ES LA LÍNEA AÑADIDA ⬆️⬆️⬆️
+
+    # --- Configurar entorno según selección ---
+    if mundo_elegido == "dia":
+        fondo_juego = imagenes_base['fondo_dia']
+        astro_img = imagenes_base['sol']
+        cactus_set = cactus_dia_imgs
+    else: # noche
+        fondo_juego = imagenes_base['fondo_noche']
+        astro_img = imagenes_base['luna']
+        cactus_set = cactus_noche_imgs
+
+    # Escalar cactus
+    cactus_imgs = escalar_lista(cactus_set, 110, 140)
+    cactus_small = escalar_lista(cactus_set, 82, 105)
+
+
+    # --- CREAR JUGADOR ---
+    if personaje_elegido == "gato":
+        jugador = Perro(gato_run, gato_jump, gato_air, ANCHO, ALTO, ALTURA_SUELO)
+    else: # perro
+        jugador = Perro(perro_run, perro_jump, perro_air, ANCHO, ALTO, ALTURA_SUELO)
+    jugador.reiniciar(ALTO, ALTURA_SUELO)
+
+    # --- OBJETOS DEL JUEGO ---
+    fondo = Fondo(fondo_juego, 0.5)
+    obstaculos = pygame.sprite.Group()
+    aves = pygame.sprite.Group()
+
+    puntaje = 0
+    record = record_previo # Cargar el record anterior
+    juego_activo = True
+    velocidad_juego = 7.5
+    reloj = pygame.time.Clock()
+
+    tiempo_ultimo_obstaculo = pygame.time.get_ticks()
+    intervalo_cactus = random.randint(1500, 3000) # Ligeramente más separados
+    tiempo_ultima_ave = pygame.time.get_ticks()
+    intervalo_ave = random.randint(5000, 9000)
+
+    # --- Configuración de generación ---
+    CHANCE_DOBLE_CACTUS = 0.3 # 30% de chance de que salgan 2
+    SEPARACION_MIN = 80
+    SEPARACION_MAX = 120
+
+    # --- Aplicar volumen ---
+    actualizar_volumen_sfx(volumen_sfx)
+
+
+    # --- BUCLE PRINCIPAL DEL JUEGO ---
+    corriendo = True
+    while corriendo:
+        dt = reloj.tick(FPS)
+        
+        # ----------------------------------------------------
+        # ⬇️ BLOQUE DE LECTURA SERIAL (JUEGO) ⬇️
+        # ----------------------------------------------------
+        if arduino_serial is not None and arduino_serial.is_open:
+            try:
+                while arduino_serial.in_waiting > 0:
+                    linea = arduino_serial.readline().decode('utf-8').strip()
+                    
+                    evento_tipo = None
+                    evento_key = None
+
+                    if linea == "UP_DOWN":
+                        evento_tipo = pygame.KEYDOWN
+                        evento_key = pygame.K_UP
+                    elif linea == "UP_UP": # Necesario para soltar agacharse/flotar
+                        evento_tipo = pygame.KEYUP
+                        evento_key = pygame.K_UP
+                    elif linea == "DOWN_DOWN": # Necesario para agacharse/flotar
+                        evento_tipo = pygame.KEYDOWN
+                        evento_key = pygame.K_DOWN
+                    elif linea == "DOWN_UP": # Necesario para soltar agacharse/flotar
+                        evento_tipo = pygame.KEYUP
+                        evento_key = pygame.K_DOWN
+                    elif linea == "LEFT_DOWN":
+                        evento_tipo = pygame.KEYDOWN
+                        evento_key = pygame.K_LEFT
+                    elif linea == "RIGHT_DOWN":
+                        evento_tipo = pygame.KEYDOWN
+                        evento_key = pygame.K_RIGHT
+                    
+                    if evento_tipo is not None:
+                        evento_post = pygame.event.Event(evento_tipo, key=evento_key)
+                        pygame.event.post(evento_post)
+                        
+            except Exception as e:
+                print(f"[ERROR SERIAL] Lectura/Conexión fallida: {e}")
+                try:
+                    arduino_serial.close()
+                except Exception:
+                    pass
+                arduino_serial = None 
+        # ----------------------------------------------------
+        # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
+        # ----------------------------------------------------
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                if arduino_serial and arduino_serial.is_open:
+                    arduino_serial.close()
+                pygame.quit()
+                sys.exit()
+
+            if juego_activo:
+                # MODIFICADO: K_UP (D2) ahora es salto
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
+                    # Simulamos un evento de K_SPACE para que "manejar_salto" funcione
+                    event_salto = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)
+                    pygame.event.post(event_salto)
+
+                # MODIFICADO: Se restauró la llamada a manejar_agacharse
+                jugador.manejar_salto(event)
+                jugador.manejar_agacharse(event)
+                
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                    try:
+                        sonido_salto.play()
+                    except Exception:
+                        pass
+                        
+            elif event.type == pygame.KEYDOWN:
+                # MODIFICADO: K_RIGHT (D3) ahora también reinicia
+                if event.key == pygame.K_SPACE or event.key == pygame.K_RIGHT:
+                    jugador.reiniciar(ALTO, ALTURA_SUELO)
+                    obstaculos.empty()
+                    aves.empty()
+                    puntaje = 0
+                    velocidad_juego = 7.5 # Reiniciado a 7.5
+                    juego_activo = True
+                    tiempo_ultimo_obstaculo = pygame.time.get_ticks()
+                    tiempo_ultima_ave = pygame.time.get_ticks()
+                    intervalo_cactus = random.randint(1500, 3000)
+                    intervalo_ave = random.randint(5000, 9000)
+                # MODIFICADO: K_LEFT (D5) ahora también vuelve al menú
+                elif event.key == pygame.K_ESCAPE or event.key == pygame.K_LEFT:
+                    corriendo = False # Termina el bucle de juego
+                    # El record se devuelve al final de la función
+
+        if juego_activo:
+            # MODIFICADO: Se quitó toda la lógica de DASH
+            fondo.actualizar(velocidad_juego)
+            jugador.actualizar(dt)
+            obstaculos.update()
+            aves.update()
+
+            tiempo_actual = pygame.time.get_ticks()
+
+            if tiempo_actual - tiempo_ultima_ave > intervalo_ave:
+                aves.add(Ave(ave_imgs, ANCHO, ALTO, velocidad_juego))
+                tiempo_ultima_ave = tiempo_actual
+                intervalo_ave = random.randint(5000, 9000)
+
+            # --- LÓGICA DE OBSTÁCULOS MODIFICADA ---
+            if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_cactus:
+                
+                # Decidir si generar uno o dos
+                if random.random() < CHANCE_DOBLE_CACTUS:
+                    # Generar DOS cactus
+                    separacion = random.randint(SEPARACION_MIN, SEPARACION_MAX)
+                    obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
+                    # El segundo puede ser pequeño
+                    obstaculos.add(Obstaculo(cactus_small, ANCHO + cactus_imgs[0].get_width() + separacion, ALTO, ALTURA_SUELO, velocidad_juego))
+                else:
+                    # Generar UN cactus
+                    obstaculos.add(Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego))
+
+                # Evitar que un ave aparezca justo después de un cactus
+                tiempo_actual_local = pygame.time.get_ticks()
+                tiempo_desde_ultima_ave = tiempo_actual_local - tiempo_ultima_ave
+                if intervalo_ave - tiempo_desde_ultima_ave < 1000: # Si falta menos de 1s para un ave
+                    tiempo_ultima_ave = tiempo_actual_local # Reiniciar timer del ave
+
+                tiempo_ultimo_obstaculo = tiempo_actual
+                intervalo_cactus = random.randint(1500, 3500) # Rango de spawn
+            # --- FIN LÓGICA OBSTÁCULOS ---
+
+            # --- COLISIONES ---
+            if pygame.sprite.spritecollide(jugador, obstaculos, False, pygame.sprite.collide_mask) or \
+               pygame.sprite.spritecollide(jugador, aves, False, pygame.sprite.collide_mask):
+                juego_activo = False
+                record = max(record, int(puntaje))
+                sonido_gameover.play()
+
+                # === BLOQUE: GUARDAR/ACTUALIZAR PUNTAJE ===
+                try:
+                    conexion = mysql.connector.connect(
+                        host="localhost",
+                        user="root",
+                        password="",
+                        database="dino"
+                    )
+                    cursor = conexion.cursor()
+
+                    if id_jugador:
+                        puntaje_final = int(puntaje)
+
+                        cursor.execute("SELECT Puntaje FROM ranking WHERE Id_Usuario = %s", (id_jugador,))
+                        fila = cursor.fetchone()
+
+                        if fila:
+                            puntaje_guardado = fila[0]
+                            if puntaje_final > puntaje_guardado:
+                                cursor.execute("UPDATE ranking SET Puntaje = %s WHERE Id_Usuario = %s", (puntaje_final, id_jugador))
+                                print(f"[DB] Record actualizado: {puntaje_final} pts (Usuario ID {id_jugador})")
+                        else:
+                            cursor.execute("INSERT INTO ranking (Id_Usuario, Puntaje) VALUES (%s, %s)", (id_jugador, puntaje_final))
+                            print(f"[DB] Record guardado: {puntaje_final} pts (Usuario ID {id_jugador})")
+
+                        conexion.commit()
+                    else:
+                        print("[AVISO] No se guardó el puntaje: jugador sin nombre registrado.")
+
+                    conexion.close()
+                except Exception as e:
+                    # ⚠️ Este error de DB no afecta la jugabilidad
+                    print(f"[ERROR BD] No se pudo guardar el puntaje: {e}")
+                # === FIN BLOQUE BD ===
+
+            # --- PUNTAJE ---
+            puntaje += 0.1
+            if int(puntaje) % 100 == 0 and int(puntaje) > 0 and velocidad_juego < 15:
+                velocidad_juego += 0.25
+
+        # --- DIBUJADO ---
+        VENTANA.fill(COLOR_ESPACIO_FONDO)
+        fondo.dibujar(VENTANA)
+        obstaculos.draw(VENTANA)
+        aves.draw(VENTANA)
+        jugador.dibujar(VENTANA)
+
+        VENTANA.blit(astro_img, astro_img.get_rect(topright=(ANCHO - 20, 20)))
+
+        mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10, BLANCO, VENTANA)
+        mostrar_texto(f"Record: {record}", ANCHO - 150, 10, BLANCO, VENTANA)
+
+        if not juego_activo:
+            game_over_surf = imagenes_base["game_over"]
+            game_over_rect = game_over_surf.get_rect(center=(ANCHO // 2, ALTO // 2 - 50)) # Subir un poco
+            VENTANA.blit(game_over_surf, game_over_rect)
+            
+            # MODIFICADO: Textos actualizados y debajo de la imagen
+            mostrar_texto("Presiona DERECHA (D3) para reiniciar", ANCHO // 2, game_over_rect.bottom + 40, BLANCO, VENTANA, centrado=True)
+            mostrar_texto("Presiona IZQUIERDA (D5) para volver al menú", ANCHO // 2, game_over_rect.bottom + 90, BLANCO, VENTANA, centrado=True)
+
+        pygame.display.flip()
+    
+    # --- Fin del bucle `while corriendo` ---
+    return record # Devuelve el record al menú principal
+
+# =================================================================
+# ⬆️ FIN NUEVA FUNCIÓN: BUCLE_JUEGO ⬆️
+# =================================================================
+
+
+# --- ESTADO GLOBAL DEL JUEGO ---
+personaje_actual = "perro"
+mundo_actual = "noche"
+record_actual = 0 # El record se actualiza desde bucle_juego
 
 # --- MENÚ PRINCIPAL ---
-# MODIFICADO: Se pasa el objeto arduino_serial
-menu = Menu(VENTANA, ANCHO, ALTO, 0, arduino_serial) 
-menu.nombre_actual = nombre
+# MODIFICADO: Se pasa el record_actual
+menu = Menu(VENTANA, ANCHO, ALTO, record_actual, arduino_serial) 
+menu.nombre_actual = nombre_jugador
 menu.id_usuario_actual = id_usuario
 
-# --- SELECCIÓN DE MUNDO ---
-mundo_actual = "noche"  # por defecto
+# --- BUCLE DE MENÚ PRINCIPAL (REDISEÑADO) ---
 while True:
-    opcion_menu = menu.mostrar()
+    menu.record_actual = record_actual # Actualiza el record en el menú
+    
+    # El idioma se obtiene del menú para pasarlo a otras pantallas
+    idioma_actual = menu.idioma 
+    
+    opcion_menu = menu.mostrar() # "jugar", "mundo", "personaje", "salir"
+
     if opcion_menu == "jugar":
-        break
+        # Llamar a la función del juego con la configuración actual
+        record_actual = bucle_juego(personaje_actual, mundo_actual, nombre_jugador, id_usuario, menu.volumen_sfx, record_actual)
+        # Actualizar volumen (por si se cambió en el menú)
+        actualizar_volumen_sfx(menu.volumen_sfx)
+    
     elif opcion_menu == "mundo":
-        # MODIFICADO: Se pasa el objeto arduino_serial
-        selector_mundo = SeleccionMundo(VENTANA, ANCHO, ALTO, arduino_serial) 
+        # MODIFICADO: Se pasa el idioma
+        selector_mundo = SeleccionMundo(VENTANA, ANCHO, ALTO, arduino_serial, idioma_actual) 
         mundo_seleccionado = selector_mundo.mostrar()
         if mundo_seleccionado in ("noche", "dia"):
-            mundo_actual = mundo_seleccionado
+            mundo_actual = mundo_seleccionado # Actualizar estado global
+            
+    elif opcion_menu == "personaje":
+        # MODIFICADO: Se pasa el idioma
+        selector_personaje = SeleccionPersonaje(VENTANA, ANCHO, ALTO, arduino_serial, idioma_actual)
+        personaje_seleccionado = selector_personaje.mostrar()
+        if personaje_seleccionado in ("perro", "gato"):
+            personaje_actual = personaje_seleccionado # Actualizar estado global
+
     elif opcion_menu == "salir":
         if arduino_serial and arduino_serial.is_open:
             arduino_serial.close()
         pygame.quit()
         sys.exit()
 
-# --- SELECCIÓN DE PERSONAJE ---
-# MODIFICADO: Se pasa el objeto arduino_serial
-selector = SeleccionPersonaje(VENTANA, ANCHO, ALTO, arduino_serial)
-personaje = selector.mostrar()  # 'perro' o 'gato'
-if personaje == "volver": # Si el usuario presionó "atrás" en selec. personaje
-    # Cierra la conexión serial antes de salir
-    if arduino_serial and arduino_serial.is_open:
-        arduino_serial.close()
-    pygame.quit()
-    sys.exit()
-
-
-# --- CAMBIO DE ELEMENTOS SEGÚN EL MUNDO ---
-sol_img = None
-if mundo_actual == "dia":
-    try:
-        imagenes['fondo'] = pygame.transform.scale(cargar_imagen("fondo2.png"), (ANCHO, ALTO))
-    except Exception as e:
-        print(f"Advertencia: no se encontró fondo2.png -> usando fondo por defecto. ({e})")
-    try:
-        imagenes['cactus'] = [
-            cargar_imagen("cactus_verde1.png"),
-            cargar_imagen("cactus_verde2.png"),
-            cargar_imagen("cactus_verde3.png")
-        ]
-    except Exception as e:
-        print(f"Advertencia: no se encontraron cactus verdes, usando cactus normales. ({e})")
-        imagenes['cactus'] = [
-            cargar_imagen("cactus1.png"),
-            cargar_imagen("cactus2.png"),
-            cargar_imagen("cactus3.png")
-        ]
-    try:
-        sol_img = pygame.transform.scale(cargar_imagen("sol.png"), (80, 80))
-    except Exception as e:
-        print(f"Advertencia: no se encontró sol.png. ({e})")
-        sol_img = None
-else:
-    sol_img = None
-
-cactus_imgs = escalar_lista(imagenes["cactus"], 110, 140)
-cactus_small = escalar_lista(imagenes["cactus"], 82, 105)
-
-# --- CREAR JUGADOR ---
-if personaje == "gato":
-    jugador = Perro(gato_run, gato_jump, gato_air, ANCHO, ALTO, ALTURA_SUELO)
-else:
-    jugador = Perro(perro_run, perro_jump, perro_air, ANCHO, ALTO, ALTURA_SUELO)
-jugador.reiniciar(ALTO, ALTURA_SUELO)
-
-# --- OBJETOS DEL JUEGO ---
-fondo = Fondo(imagenes["fondo"], 0.5)
-obstaculos = pygame.sprite.Group()
-aves = pygame.sprite.Group()
-
-puntaje = 0
-record = 0
-juego_activo = True
-velocidad_juego = 7.5
-reloj = pygame.time.Clock()
-
-# --- DASH CONFIG ---
-DASH_CACTUS_MULTIPLIER = 2.2
-prev_dashing = False
-
-tiempo_ultimo_obstaculo = pygame.time.get_ticks()
-intervalo_cactus = random.randint(1000, 3000)
-tiempo_ultima_ave = pygame.time.get_ticks()
-intervalo_ave = random.randint(4000, 8000)
-
-CHANCE_DOBLE_CACTUS = 0.5
-CHANCE_SEGUNDO_CACTUS_PEQUENO = 0.9
-SEPARACION_MIN = 60
-SEPARACION_MAX = 100
-
-# --- SONIDOS DE EFECTOS ---
-sonido_salto = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoSalto.mp3"))
-sonido_gameover = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoGameOver.mp3"))
-
-def actualizar_volumen_sfx():
-    sonido_salto.set_volume(menu.volumen_sfx)
-    sonido_gameover.set_volume(menu.volumen_sfx)
-
-actualizar_volumen_sfx()
-
-# --- BUCLE PRINCIPAL ---
-while True:
-    dt = reloj.tick(FPS)
-    
-    # ----------------------------------------------------
-    # ⬇️ BLOQUE DE LECTURA SERIAL (MODIFICADO) ⬇️
-    # ----------------------------------------------------
-    if arduino_serial is not None and arduino_serial.is_open:
-        try:
-            while arduino_serial.in_waiting > 0:
-                linea = arduino_serial.readline().decode('utf-8').strip()
-                
-                evento_tipo = None
-                evento_key = None
-
-                if linea == "UP_DOWN":
-                    evento_tipo = pygame.KEYDOWN
-                    evento_key = pygame.K_UP
-                elif linea == "UP_UP":
-                    evento_tipo = pygame.KEYUP
-                    evento_key = pygame.K_UP
-                elif linea == "DOWN_DOWN":
-                    evento_tipo = pygame.KEYDOWN
-                    evento_key = pygame.K_DOWN
-                elif linea == "DOWN_UP":
-                    evento_tipo = pygame.KEYUP
-                    evento_key = pygame.K_DOWN
-                elif linea == "LEFT_DOWN":
-                    evento_tipo = pygame.KEYDOWN
-                    evento_key = pygame.K_LEFT
-                elif linea == "LEFT_UP":
-                    evento_tipo = pygame.KEYUP
-                    evento_key = pygame.K_LEFT
-                elif linea == "RIGHT_DOWN":
-                    evento_tipo = pygame.KEYDOWN
-                    evento_key = pygame.K_RIGHT
-                elif linea == "RIGHT_UP":
-                    evento_tipo = pygame.KEYUP
-                    evento_key = pygame.K_RIGHT
-
-                if evento_tipo is not None:
-                    evento_post = pygame.event.Event(evento_tipo, key=evento_key)
-                    pygame.event.post(evento_post)
-                    
-        except Exception as e:
-            print(f"[ERROR SERIAL] Lectura/Conexión fallida: {e}")
-            try:
-                arduino_serial.close()
-            except Exception:
-                pass
-            arduino_serial = None 
-    # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
-    # ----------------------------------------------------
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            if arduino_serial and arduino_serial.is_open:
-                arduino_serial.close()
-            pygame.quit()
-            sys.exit()
-
-        if juego_activo:
-            # MODIFICADO: K_UP (o flecha arriba) ahora también es salto
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
-                # Simulamos un evento de K_SPACE para que "manejar_salto" funcione
-                event_salto = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)
-                pygame.event.post(event_salto)
-
-            jugador.manejar_salto(event)
-            # K_DOWN (flecha abajo) ya es manejado por esta función
-            try:
-                jugador.manejar_agacharse(event)
-            except Exception:
-                pass
-            
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                try:
-                    sonido_salto.play()
-                except Exception:
-                    pass
-                    
-        elif event.type == pygame.KEYDOWN:
-            # MODIFICADO: K_RIGHT (flecha derecha) ahora también reinicia
-            if event.key == pygame.K_SPACE or event.key == pygame.K_RIGHT:
-                jugador.reiniciar(ALTO, ALTURA_SUELO)
-                obstaculos.empty()
-                aves.empty()
-                puntaje = 0
-                velocidad_juego = 7.5 # Reiniciado a 7.5
-                juego_activo = True
-                tiempo_ultimo_obstaculo = pygame.time.get_ticks()
-                tiempo_ultima_ave = pygame.time.get_ticks()
-                intervalo_cactus = random.randint(1000, 3000)
-                intervalo_ave = random.randint(4000, 8000)
-            # MODIFICADO: K_LEFT (flecha izquierda) ahora también vuelve al menú
-            elif event.key == pygame.K_ESCAPE or event.key == pygame.K_LEFT:
-                menu.record_actual = record
-                opcion = menu.mostrar()
-                actualizar_volumen_sfx()
-                if opcion != "jugar":
-                    if arduino_serial and arduino_serial.is_open:
-                        arduino_serial.close()
-                    pygame.quit()
-                    sys.exit()
-
-    if juego_activo:
-        try:
-            dashing_now = getattr(jugador, 'is_dashing', False)
-        except Exception:
-            dashing_now = False
-
-        fondo.actualizar(velocidad_juego * (DASH_CACTUS_MULTIPLIER if dashing_now else 1))
-        jugador.actualizar(dt)
-        obstaculos.update()
-        aves.update()
-
-        if dashing_now and not prev_dashing:
-            for obs in obstaculos:
-                try:
-                    obs.velocidad = obs._base_vel * DASH_CACTUS_MULTIPLIER
-                except Exception:
-                    pass
-            for a in aves:
-                try:
-                    a.velocidad = a._base_vel * DASH_CACTUS_MULTIPLIER
-                except Exception:
-                    pass
-            prev_dashing = True
-        elif not dashing_now and prev_dashing:
-            for obs in obstaculos:
-                try:
-                    obs.velocidad = obs._base_vel
-                except Exception:
-                    pass
-            for a in aves:
-                try:
-                    a.velocidad = a._base_vel
-                except Exception:
-                    pass
-            prev_dashing = False
-
-        tiempo_actual = pygame.time.get_ticks()
-
-        if tiempo_actual - tiempo_ultima_ave > intervalo_ave:
-            aves.add(Ave(ave_imgs, ANCHO, ALTO, velocidad_juego))
-            tiempo_ultima_ave = tiempo_actual
-            intervalo_ave = random.randint(4000, 8000)
-
-        if tiempo_actual - tiempo_ultimo_obstaculo > intervalo_cactus:
-            nuevo = Obstaculo(cactus_imgs, ANCHO, ALTO, ALTURA_SUELO, velocidad_juego)
-            if dashing_now:
-                try:
-                    nuevo.velocidad = nuevo._base_vel * DASH_CACTUS_MULTIPLIER
-                except Exception:
-                    pass
-            obstaculos.add(nuevo)
-            tiempo_actual_local = pygame.time.get_ticks()
-            tiempo_desde_ultima_ave = tiempo_actual_local - tiempo_ultima_ave
-            tiempo_restante_ave = intervalo_ave - tiempo_desde_ultima_ave
-            if tiempo_restante_ave is not None and tiempo_restante_ave < 1000:
-                tiempo_ultima_ave = tiempo_actual_local
-                intervalo_ave = random.randint(4000, 8000)
-            if random.random() < CHANCE_DOBLE_CACTUS:
-                cactus_extra = cactus_small if random.random() < CHANCE_SEGUNDO_CACTUS_PEQUENO else cactus_imgs
-                separacion = random.randint(SEPARACION_MIN, SEPARACION_MAX)
-                obstaculos.add(Obstaculo(cactus_extra, ANCHO + separacion, ALTO, ALTURA_SUELO, velocidad_juego))
-            tiempo_ultimo_obstaculo = tiempo_actual
-            intervalo_cactus = random.randint(1000, 3000)
-
-        # --- COLISIONES ---
-        if pygame.sprite.spritecollide(jugador, obstaculos, False, pygame.sprite.collide_mask) or \
-           pygame.sprite.spritecollide(jugador, aves, False, pygame.sprite.collide_mask):
-            juego_activo = False
-            record = max(record, int(puntaje))
-            sonido_gameover.play()
-
-            # === BLOQUE: GUARDAR/ACTUALIZAR PUNTAJE ===
-            try:
-                import mysql.connector
-                conexion = mysql.connector.connect(
-                    host="localhost",
-                    user="root",
-                    password="",
-                    database="dino"
-                )
-                cursor = conexion.cursor()
-
-                if hasattr(menu, "id_usuario_actual") and menu.id_usuario_actual:
-                    id_usuario = menu.id_usuario_actual
-                    puntaje_final = int(puntaje)
-
-                    cursor.execute("SELECT Puntaje FROM ranking WHERE Id_Usuario = %s", (id_usuario,))
-                    fila = cursor.fetchone()
-
-                    if fila:
-                        puntaje_guardado = fila[0]
-                        if puntaje_final > puntaje_guardado:
-                            cursor.execute("UPDATE ranking SET Puntaje = %s WHERE Id_Usuario = %s", (puntaje_final, id_usuario))
-                            print(f"[DB] Record actualizado: {puntaje_final} pts (Usuario ID {id_usuario})")
-                    else:
-                        cursor.execute("INSERT INTO ranking (Id_Usuario, Puntaje) VALUES (%s, %s)", (id_usuario, puntaje_final))
-                        print(f"[DB] Record guardado: {puntaje_final} pts (Usuario ID {id_usuario})")
-
-                    conexion.commit()
-                else:
-                    print("[AVISO] No se guardó el puntaje: jugador sin nombre registrado.")
-
-                conexion.close()
-            except Exception as e:
-                # ⚠️ Este error de DB no afecta la jugabilidad
-                print(f"[ERROR BD] No se pudo guardar el puntaje: {e}")
-            # === FIN BLOQUE BD ===
-
-        # --- PUNTAJE ---
-        puntaje += 0.1
-        if int(puntaje) % 100 == 0 and velocidad_juego < 15:
-            velocidad_juego += 0.25
-
-    # --- DIBUJADO ---
-    VENTANA.fill(COLOR_ESPACIO_FONDO)
-    fondo.dibujar(VENTANA)
-    obstaculos.draw(VENTANA)
-    aves.draw(VENTANA)
-    jugador.dibujar(VENTANA)
-
-    if mundo_actual == "dia" and sol_img is not None:
-        VENTANA.blit(sol_img, sol_img.get_rect(topright=(ANCHO - 20, 20)))
-    else:
-        VENTANA.blit(luna_img, luna_img.get_rect(topright=(ANCHO - 20, 20)))
-
-    mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10, BLANCO, VENTANA)
-    mostrar_texto(f"Record: {record}", ANCHO - 150, 10, BLANCO, VENTANA)
-
-    if not juego_activo:
-        VENTANA.blit(imagenes["game_over"], imagenes["game_over"].get_rect(center=(ANCHO // 2, ALTO // 2 - 30)))
-        # MODIFICADO: Textos actualizados para reflejar los nuevos controles
-        mostrar_texto("Presiona DERECHA o ESPACIO para reiniciar", ANCHO // 2, ALTO // 2 + 90, BLANCO, VENTANA, centrado=True)
-        mostrar_texto("Presiona IZQUIERDA o ESC para volver al menú", ANCHO // 2, ALTO // 2 + 140, BLANCO, VENTANA, centrado=True)
-
-    pygame.display.flip()
+# --- FIN DEL PROGRAMA ---

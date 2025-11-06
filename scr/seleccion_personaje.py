@@ -52,12 +52,30 @@ class Polvo:
 
 
 class SeleccionPersonaje:
-    # MODIFICADO: Añadido arduino_serial=None
-    def __init__(self, pantalla, ancho, alto, arduino_serial=None):
+    # MODIFICADO: Añadido arduino_serial=None e idioma
+    def __init__(self, pantalla, ancho, alto, arduino_serial=None, idioma="es"):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
         self.arduino_serial = arduino_serial # <-- MODIFICADO
+        self.idioma = idioma
+
+        # --- Textos Multi-idioma ---
+        self.textos = {
+            "es": {
+                "titulo": "Selecciona tu personaje",
+                "perro": "Perro",
+                "gato": "Gato",
+                "volver": "VOLVER"
+            },
+            "en": {
+                "titulo": "Select your character",
+                "perro": "Dog",
+                "gato": "Cat",
+                "volver": "BACK"
+            }
+        }
+        self.txt = self.textos[self.idioma]
 
         # --- Fuentes ---
         self.fuente_titulo = pygame.font.Font(None, 90)
@@ -152,7 +170,7 @@ class SeleccionPersonaje:
         while True:
             self.pantalla.blit(self.fondo, (0, 0))
 
-            self.dibujar_texto("Selecciona tu personaje", self.fuente_titulo,
+            self.dibujar_texto(self.txt["titulo"], self.fuente_titulo,
                                (255, 255, 255), self.ancho // 2, 100)
 
             if anim > 10 or anim < -10:
@@ -177,11 +195,11 @@ class SeleccionPersonaje:
             x_perro = self.ancho // 2 - sep_x
             x_gato = self.ancho // 2 + sep_x
 
-            self.dibujar_tarjeta("Perro", perro_img, x_perro,
+            self.dibujar_tarjeta(self.txt["perro"], perro_img, x_perro,
                                  centro_y + (anim if self.opcion_sel == 0 else 0),
                                  seleccionado=(self.opcion_sel == 0),
                                  polvos=self.polvos_perro)
-            self.dibujar_tarjeta("Gato", gato_img, x_gato,
+            self.dibujar_tarjeta(self.txt["gato"], gato_img, x_gato,
                                  centro_y + (anim if self.opcion_sel == 1 else 0),
                                  seleccionado=(self.opcion_sel == 1),
                                  polvos=self.polvos_gato)
@@ -200,7 +218,7 @@ class SeleccionPersonaje:
             
             pygame.draw.rect(self.pantalla, color_btn, boton_rect, border_radius=20)
             pygame.draw.rect(self.pantalla, color_borde, boton_rect, 3, border_radius=20)
-            self.dibujar_texto("VOLVER", self.fuente_volver, (255, 255, 255),
+            self.dibujar_texto(self.txt["volver"], self.fuente_volver, (255, 255, 255),
                                boton_rect.centerx, boton_rect.centery)
 
             # ----------------------------------------------------
@@ -242,7 +260,7 @@ class SeleccionPersonaje:
             # ----------------------------------------------------
 
 
-            # --- Eventos (MODIFICADOS) ---
+            # --- Eventos (MODIFICADOS PARA ARDUINO) ---
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     if self.arduino_serial and self.arduino_serial.is_open:
@@ -251,32 +269,27 @@ class SeleccionPersonaje:
                     sys.exit()
                 elif event.type == pygame.KEYDOWN:
                     
-                    if event.key == pygame.K_DOWN:
+                    if event.key == pygame.K_DOWN: # D4
                         if self.opcion_sel == 0 or self.opcion_sel == 1:
                             self.opcion_sel = 2 # Ir a Volver
                     
-                    elif event.key == pygame.K_UP:
+                    elif event.key == pygame.K_UP: # D2
                         if self.opcion_sel == 2:
                             self.opcion_sel = 0 # Ir a Perro
                     
-                    elif event.key == pygame.K_LEFT:
+                    elif event.key == pygame.K_LEFT: # D5
                         if self.opcion_sel == 1:
                             self.opcion_sel = 0 # Gato -> Perro
-                        elif self.opcion_sel == 2:
-                            self.opcion_sel = 0 # Volver -> Perro
                         elif self.opcion_sel == 0:
-                            return "volver" # Perro -> Volver (Acción)
-
-                    elif event.key == pygame.K_RIGHT:
-                        if self.opcion_sel == 0:
                             self.opcion_sel = 1 # Perro -> Gato
                         elif self.opcion_sel == 2:
-                             self.opcion_sel = 1 # Volver -> Gato
-                        elif self.opcion_sel == 1:
-                            # Gato -> Seleccionar Gato (Acción)
-                            return self.opciones[self.opcion_sel] 
+                            return "volver" # Si estás en Volver, K_LEFT (D5) te saca
 
-                    elif event.key == pygame.K_RETURN: # Mantener Enter por si acaso
+                    elif event.key == pygame.K_RIGHT: # D3
+                        # K_RIGHT (D3) es CONFIRMAR
+                        return self.opciones[self.opcion_sel] # Confirma Perro, Gato, o Volver
+
+                    elif event.key == pygame.K_RETURN: # Mantener Enter
                         return self.opciones[self.opcion_sel]
                     
                     elif event.key == pygame.K_ESCAPE: # Mantener Escape

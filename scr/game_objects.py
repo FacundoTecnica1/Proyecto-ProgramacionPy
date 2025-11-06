@@ -17,8 +17,10 @@ class Ave(pygame.sprite.Sprite):
         # --- Posición y movimiento ---
         self.rect = self.image.get_rect()
         self.rect.x = ancho_ventana
-        self.rect.y = random.randint(50, 115) 
-        self.velocidad = velocidad_juego + 2 
+        # MODIFICADO: Rango de altura de vuelo
+        self.rect.y = random.choice([alto_ventana - 180, alto_ventana - 250, alto_ventana - 320])
+        self.velocidad = velocidad_juego + random.uniform(1.5, 3.0) # Velocidad variable
+        # MODIFICADO: Se quitó _base_vel
         self.mask = pygame.mask.from_surface(self.image)
         self.ultimo_update = pygame.time.get_ticks()
 
@@ -44,6 +46,7 @@ class Ave(pygame.sprite.Sprite):
 # CLASE PERRO / GATO (jugador)
 # ==============================
 class Perro(pygame.sprite.Sprite):
+    # --- MODIFICADO: __init__ (Se quitó el Dash) ---
     def __init__(self, frames_correr, imagen_salto, imagen_aire, ancho, alto, altura_suelo):
         super().__init__()
         self.frames_correr = frames_correr
@@ -69,13 +72,7 @@ class Perro(pygame.sprite.Sprite):
         self.space_pressed = False
         # Agachado en aire (flotar)
         self.air_crouch = False
-        # Dash (se activa con down + jump)
-        self.is_dashing = False
-        self.dash_timer = 0
-        self.dash_duration = 200  # ms (duración del freeze en aire)
-        self.dash_distance = 180  # pixels
-        self.dash_cooldown = 1000  # ms
-        self.last_dash = -10000
+        
         # Guardar ancho para limitar dash
         self.ancho = ancho
         # Guardar referencias originales para restaurar
@@ -85,14 +82,11 @@ class Perro(pygame.sprite.Sprite):
         # Guardar gravedad original para ajustar caída en el aire
         self._original_gravedad = self.gravedad
 
+    # --- MODIFICADO: manejar_salto (Se quitó el Dash) ---
     def manejar_salto(self, event):
-        # Manejar presionar/soltar SPACE para salto y dash
+        # Manejar presionar/soltar SPACE para salto
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
             self.space_pressed = True
-            # Si la tecla abajo ya está presionada, intentar dash (solo en aire)
-            if self.down_pressed and not self.en_suelo:
-                self._try_start_dash()
-                return
             # comportamiento normal de salto (solo si estamos en suelo)
             if self.en_suelo:
                 self.vel_y = -20
@@ -100,16 +94,15 @@ class Perro(pygame.sprite.Sprite):
         elif event.type == pygame.KEYUP and event.key == pygame.K_SPACE:
             self.space_pressed = False
 
+    # --- MODIFICADO: manejar_agacharse (Se quitó el Dash) ---
     def manejar_agacharse(self, event):
         """Maneja eventos KEYDOWN/KEYUP para la tecla de agacharse (flecha abajo)."""
         if event.type == pygame.KEYDOWN and event.key == pygame.K_DOWN:
             self.down_pressed = True
-            # Si SPACE ya está presionada y estamos en el aire, intentar dash
-            if self.space_pressed and not self.en_suelo:
-                self._try_start_dash()
-                return
+            
             # Si estamos en el aire y estamos cayendo, activar flotación
-            if not self.en_suelo and self.vel_y > 0 and not self.is_dashing:
+            # MODIFICADO: Se quitó 'and not self.is_dashing'
+            if not self.en_suelo and self.vel_y > 0: 
                 self.air_crouch = True
                 # Reducir gravedad y limitar velocidad para sensación más notable de flotación
                 self.gravedad = self._original_gravedad * 0.25
@@ -126,25 +119,9 @@ class Perro(pygame.sprite.Sprite):
             elif self.is_crouching:
                 self.stand_up()
 
-    def _try_start_dash(self):
-        """Intenta iniciar un dash: sólo se permite en el aire, si no está en cooldown y no está ya dashing."""
-        ahora = pygame.time.get_ticks()
-        if ahora - self.last_dash < self.dash_cooldown:
-            return
-        if self.is_dashing:
-            return
-        if self.en_suelo:
-            return
+    # --- MODIFICADO: Se eliminó _try_start_dash() ---
 
-        # Iniciar dash: congelar verticalmente al jugador y marcar temporizador
-        self.is_dashing = True
-        self.dash_timer = self.dash_duration
-        self.last_dash = ahora
-        # Congelar verticalmente
-        self.vel_y = 0
-        self.gravedad = 0
-        self.en_suelo = False
-
+    # --- MÉTODO crouch() (Restaurado) ---
     def crouch(self):
         """Aplica el efecto de agacharse.
 
@@ -183,8 +160,7 @@ class Perro(pygame.sprite.Sprite):
         # Nota: el comportamiento de agachado en el aire (flotar) se gestiona
         # desde manejar_agacharse para distinguir entre subir y caer.
 
-    # La voltereta/air_roll fue reemplazada por la mecánica de dash.
-
+    # --- MÉTODO stand_up() (Restaurado) ---
     def stand_up(self):
         """Restaura la altura original del jugador y actualiza rect y máscara."""
         if not self.is_crouching:
@@ -211,37 +187,14 @@ class Perro(pygame.sprite.Sprite):
         self.rect.bottom = bottom
         self.mask = pygame.mask.from_surface(self.image)
 
+    # --- MODIFICADO: actualizar (Se quitó el Dash) ---
     def actualizar(self, dt):
-        # Manejar dash: durante dash el jugador queda congelado verticalmente
-        if self.is_dashing:
-            # Mantener al jugador en el aire: sin velocidad vertical ni gravedad
-            self.dash_timer -= dt
-            self.vel_y = 0
-            self.gravedad = 0
-            # No mover horizontalmente al jugador (el mundo se mueve)
-            if self.dash_timer <= 0:
-                # Termina el dash: restaurar gravedad y permitir caída
-                self.is_dashing = False
-                self.gravedad = self._original_gravedad
-                # Dar una pequeña velocidad para reanudar la caída
-                self.vel_y = 2
-                # Si el jugador mantiene la tecla abajo al terminar el dash y está en el aire,
-                # reactivar el air_crouch para continuar flotando inmediatamente.
-                if self.down_pressed and not self.en_suelo:
-                    self.air_crouch = True
-                    self.gravedad = self._original_gravedad * 0.25
-                    if self.vel_y > 3:
-                        self.vel_y = 3
-        else:
-            # Aplicar gravedad y movimiento vertical normal
-            self.vel_y += self.gravedad
+        
+        # Aplicar gravedad y movimiento vertical normal
+        self.vel_y += self.gravedad
 
-        # Revisión de combinaciones de teclas (por frame) para mejorar la respuesta:
-        # Si SPACE se mantiene y DOWN está presionado en el aire, intentar dash.
-        # Esto reduce la latencia percibida por el orden de eventos.
-        if not self.is_dashing and not self.en_suelo:
-            if self.space_pressed and self.down_pressed:
-                self._try_start_dash()
+        # MODIFICADO: Se eliminó la revisión de 'dash' por frame
+        
         self.rect.y += self.vel_y
 
         # Limita la posición al suelo
@@ -266,6 +219,7 @@ class Perro(pygame.sprite.Sprite):
 
         self.mask = pygame.mask.from_surface(self.image)
 
+    # --- MODIFICADO: reiniciar (Se quitó el Dash) ---
     def reiniciar(self, alto, altura_suelo):
         # Restaurar posición y estados básicos
         self.rect = self.image.get_rect()
@@ -274,11 +228,11 @@ class Perro(pygame.sprite.Sprite):
         self.vel_y = 0
         self.gravedad = self._original_gravedad
         self.en_suelo = True
-        # Restaurar estados de entrada/agachado/dash
+        # Restaurar estados de entrada/agachado
         self.is_crouching = False
         self.down_pressed = False
-        self.is_dashing = False
-        self.dash_timer = 0
+        self.air_crouch = False # <-- Añadido para seguridad
+        
         # Restaurar imágenes y frames originales
         self.frames_correr = list(self._original_frames_correr)
         self.imagen_salto = self._original_imagen_salto
@@ -300,9 +254,9 @@ class Obstaculo(pygame.sprite.Sprite):
         self.image = random.choice(imagenes)
         self.rect = self.image.get_rect()
         self.rect.bottom = alto - altura_suelo
-        self.rect.left = ancho + random.randint(0, 100)
-        # Guardar velocidad base para permitir modificar temporalmente (dash)
-        self._base_vel = velocidad
+        self.rect.left = ancho + random.randint(0, 50) # Menos aleatoriedad
+        
+        # MODIFICADO: Se quitó _base_vel, ya no es necesario
         self.velocidad = velocidad
         self.mask = pygame.mask.from_surface(self.image)
 
@@ -315,30 +269,7 @@ class Obstaculo(pygame.sprite.Sprite):
 # ==============================
 # CLASE AVE (Versión usada en main)
 # ==============================
-class Ave(pygame.sprite.Sprite):
-    def __init__(self, imagenes, ancho, alto, velocidad):
-        super().__init__()
-        self.imagenes = imagenes
-        self.image = imagenes[0]
-        self.rect = self.image.get_rect()
-        self.rect.left = ancho + 50
-        self.rect.y = random.choice([alto - 180, alto - 250])
-        self.velocidad = velocidad + 2
-        # Guardar velocidad base para poder restaurarla después de un dash
-        self._base_vel = self.velocidad
-        self.frame_index = 0
-        self.tiempo_anim = 0
-        self.mask = pygame.mask.from_surface(self.image)
-
-    def update(self):
-        self.rect.x -= self.velocidad
-        self.tiempo_anim += 1
-        if self.tiempo_anim > 10:
-            self.frame_index = (self.frame_index + 1) % len(self.imagenes)
-            self.image = self.imagenes[self.frame_index]
-            self.tiempo_anim = 0
-        if self.rect.right < 0:
-            self.kill()
+# (Se eliminó la definición duplicada, la primera es la que vale)
 
 
 # ==============================
@@ -352,6 +283,7 @@ class Fondo:
         self.x2 = imagen.get_width()
 
     def actualizar(self, velocidad_juego):
+        # MODIFICADO: Se quitó la multiplicación por dash
         self.x1 -= velocidad_juego * self.velocidad
         self.x2 -= velocidad_juego * self.velocidad
 
