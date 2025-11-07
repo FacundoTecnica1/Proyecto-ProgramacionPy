@@ -292,18 +292,18 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
     puntaje = 0
     record = record_previo # Cargar el record anterior
     juego_activo = True
-    velocidad_juego = 7.5
+    velocidad_juego = 9.0 # AUMENTADO: Velocidad base más rápida (era 7.5)
     reloj = pygame.time.Clock()
 
     tiempo_ultimo_obstaculo = pygame.time.get_ticks()
-    intervalo_cactus = random.randint(1500, 3000) # Ligeramente más separados
+    intervalo_cactus = random.randint(2000, 4000) # AUMENTADO: Más espaciados
     tiempo_ultima_ave = pygame.time.get_ticks()
     intervalo_ave = random.randint(5000, 9000)
 
     # --- Configuración de generación ---
-    CHANCE_DOBLE_CACTUS = 0.3 # 30% de chance de que salgan 2
-    SEPARACION_MIN = 80
-    SEPARACION_MAX = 120
+    CHANCE_DOBLE_CACTUS = 0.15 # REDUCIDO: 15% de chance de que salgan 2 (era 30%)
+    SEPARACION_MIN = 90 # AJUSTADO: Separación más corta pero esquivable
+    SEPARACION_MAX = 140 # AJUSTADO: Máximo más razonable
 
     # --- Aplicar volumen ---
     actualizar_volumen_sfx(volumen_sfx)
@@ -390,11 +390,11 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                     obstaculos.empty()
                     aves.empty()
                     puntaje = 0
-                    velocidad_juego = 7.5 # Reiniciado a 7.5
+                    velocidad_juego = 9.0 # ACTUALIZADO: Misma velocidad base
                     juego_activo = True
                     tiempo_ultimo_obstaculo = pygame.time.get_ticks()
                     tiempo_ultima_ave = pygame.time.get_ticks()
-                    intervalo_cactus = random.randint(1500, 3000)
+                    intervalo_cactus = random.randint(2000, 4000) # ACTUALIZADO: Mismo rango inicial
                     intervalo_ave = random.randint(5000, 9000)
                 # MODIFICADO: K_LEFT (D5) ahora también vuelve al menú
                 elif event.key == pygame.K_ESCAPE or event.key == pygame.K_LEFT:
@@ -436,7 +436,7 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                     tiempo_ultima_ave = tiempo_actual_local # Reiniciar timer del ave
 
                 tiempo_ultimo_obstaculo = tiempo_actual
-                intervalo_cactus = random.randint(1500, 3500) # Rango de spawn
+                intervalo_cactus = random.randint(2200, 4500) # AJUSTADO: Rango más alto y consistente
             # --- FIN LÓGICA OBSTÁCULOS ---
 
             # --- COLISIONES ---

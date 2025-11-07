@@ -60,7 +60,7 @@ class Perro(pygame.sprite.Sprite):
         self.altura_suelo = altura_suelo
         self.alto_pantalla = alto
         self.vel_y = 0
-        self.gravedad = 1.0
+        self.gravedad = 0.8 # REDUCIDO: Gravedad más suave (era 1.0)
         self.en_suelo = True
         self.frame_index = 0
         self.tiempo_anim = 0
@@ -89,7 +89,7 @@ class Perro(pygame.sprite.Sprite):
             self.space_pressed = True
             # comportamiento normal de salto (solo si estamos en suelo)
             if self.en_suelo:
-                self.vel_y = -20
+                self.vel_y = -22 # AUMENTADO: Salto más alto y pronunciado (era -20)
                 self.en_suelo = False
         elif event.type == pygame.KEYUP and event.key == pygame.K_SPACE:
             self.space_pressed = False
