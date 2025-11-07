@@ -6,12 +6,13 @@ import mysql.connector
 import serial # <-- MODIFICADO: Importado
 
 class ElegirNombre:
-    # MODIFICADO: Añadido arduino_serial=None
-    def __init__(self, pantalla, ancho, alto, arduino_serial=None):
+    # MODIFICADO: Añadido arduino_serial=None e idioma="es"
+    def __init__(self, pantalla, ancho, alto, arduino_serial=None, idioma="es"):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
         self.arduino_serial = arduino_serial # <-- MODIFICADO
+        self.idioma = idioma # <-- MODIFICADO
 
         # 🎨 Estilo visual
         self.color_texto = (255, 255, 255)
@@ -21,6 +22,17 @@ class ElegirNombre:
         self.fuente_letra = pygame.font.Font(None, 120)
         self.fuente_info = pygame.font.Font(None, 40)
         self.anim_tiempo = 0
+
+        # --- Textos Multi-idioma (NUEVO) ---
+        self.textos = {
+            "es": {
+                "titulo": "ELIGE TU NOMBRE"
+            },
+            "en": {
+                "titulo": "CHOOSE YOUR NAME"
+            }
+        }
+        self.txt = self.textos[self.idioma]
 
         # 🖼️ Fondo opcional
         ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo.png")
@@ -145,7 +157,8 @@ class ElegirNombre:
                 self.gradiente_fondo()
 
             # 🔰 Título
-            titulo_texto = "ELIGE TU NOMBRE"
+            # MODIFICADO: Usar self.txt
+            titulo_texto = self.txt["titulo"]
             sombra = self.fuente_titulo.render(titulo_texto, True, (0, 0, 0))
             texto = self.fuente_titulo.render(titulo_texto, True, self.color_texto)
             rect = texto.get_rect(center=(self.ancho // 2, 120))

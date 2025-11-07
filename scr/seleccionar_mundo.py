@@ -99,9 +99,10 @@ class SeleccionMundo:
             # Título
             self.dibujar_texto(self.txt["titulo"], self.fuente_titulo, (255, 255, 255), self.ancho // 2, 100)
 
-            # Botones de mundos
-            boton_noche = pygame.Rect(self.ancho // 2 - 300, self.alto // 2 - 100, 250, 180)
-            boton_dia = pygame.Rect(self.ancho // 2 + 50, self.alto // 2 - 100, 250, 180)
+            # Botones de mundos (MODIFICADOS)
+            # Más anchos (300px) y reposicionados
+            boton_noche = pygame.Rect(self.ancho // 2 - 325, self.alto // 2 - 100, 300, 180)
+            boton_dia = pygame.Rect(self.ancho // 2 + 25, self.alto // 2 - 100, 300, 180)
 
             # Resaltado según selección
             if not self.en_boton_volver:

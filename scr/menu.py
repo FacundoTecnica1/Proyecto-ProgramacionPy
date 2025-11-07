@@ -6,8 +6,8 @@ from seleccionar_sonido import SelectorSonido
 from mostrar_ranking import MostrarRanking
 
 class Menu:
-    # MODIFICADO: Añadido arduino_serial=None
-    def __init__(self, pantalla, ancho, alto, record_actual, arduino_serial=None):
+    # MODIFICADO: Añadido arduino_serial=None e idioma_inicial
+    def __init__(self, pantalla, ancho, alto, record_actual, arduino_serial=None, idioma_inicial="es"):
         self.pantalla = pantalla
         self.ancho = ancho
         self.alto = alto
@@ -15,14 +15,23 @@ class Menu:
         self.arduino_serial = arduino_serial # <-- MODIFICADO
 
         # --- Idioma actual ---
-        self.idioma = "es"
+        self.idioma = idioma_inicial # <-- MODIFICADO
         self.textos = {
-            # MODIFICADO: Añadido "Elegir Personaje"
-            "es": ["Jugar", "Elegir Mundo", "Elegir Personaje", "Ver Rankings", "Salir"],
-            "en": ["Play", "Choose World", "Choose Character", "View Rankings", "Exit"]
+            "es": {
+                "titulo": "Dino",
+                "record": "Record",
+                "jugador": "Jugador",
+                "opciones": ["Jugar", "Elegir Mundo", "Elegir Personaje", "Ver Rankings", "Salir"]
+            },
+            "en": {
+                "titulo": "Dino Game",
+                "record": "High Score",
+                "jugador": "Player",
+                "opciones": ["Play", "Choose World", "Choose Character", "View Rankings", "Exit"]
+            }
         }
+        self.actualizar_textos() # <-- MODIFICADO
 
-        self.opciones = self.textos[self.idioma]
         self.opcion_seleccionada = 0  # 0 = configuración superior
         self.seleccion_horizontal = 0  # 0 = idioma, 1 = música
 
@@ -60,6 +69,12 @@ class Menu:
         self.botones_rects = []
         self.nombre_actual = None
         self.id_usuario_actual = None
+
+    # ------------------------------------------------------------
+    # MODIFICADO: Nuevo método para actualizar todos los textos
+    def actualizar_textos(self):
+        self.txt = self.textos[self.idioma]
+        self.opciones = self.txt["opciones"]
 
     # ------------------------------------------------------------
     def dibujar_boton(self, texto, x, y, seleccionado=False):
@@ -101,9 +116,10 @@ class Menu:
         self.pantalla.blit(texto_surf, (centro_globo[0] + 25, self.rect_boton_idioma.centery - 12))
 
     # ------------------------------------------------------------
+    # MODIFICADO: Llama a actualizar_textos
     def cambiar_idioma(self):
         self.idioma = "en" if self.idioma == "es" else "es"
-        self.opciones = self.textos[self.idioma]
+        self.actualizar_textos()
 
     # ------------------------------------------------------------
     def dibujar_icono_musica(self, seleccionado=False):
@@ -121,19 +137,16 @@ class Menu:
         while True:
             self.pantalla.blit(self.fondo_img, (0, 0))
 
-            # --- Título ---
-            titulo = "Dino" if self.idioma == "es" else "Dino Game"
-            titulo_surf = self.fuente_titulo.render(titulo, True, self.color_texto)
+            # --- Título (MODIFICADO) ---
+            titulo_surf = self.fuente_titulo.render(self.txt["titulo"], True, self.color_texto)
             titulo_rect = titulo_surf.get_rect(center=(self.ancho // 2, 100))
             self.pantalla.blit(titulo_surf, titulo_rect)
 
-            # --- Info jugador ---
-            texto_record_es = f"Record: {self.record_actual}"
-            texto_record_en = f"High Score: {self.record_actual}"
-            texto_record = texto_record_es if self.idioma == "es" else texto_record_en
+            # --- Info jugador (MODIFICADO) ---
+            texto_record = f"{self.txt['record']}: {self.record_actual}"
             
             if self.nombre_actual:
-                texto_jugador = f"Jugador: {self.nombre_actual}" if self.idioma == "es" else f"Player: {self.nombre_actual}"
+                texto_jugador = f"{self.txt['jugador']}: {self.nombre_actual}"
                 texto_completo = f"{texto_record}    |    {texto_jugador}"
             else:
                 texto_completo = texto_record
@@ -155,6 +168,7 @@ class Menu:
             inicio_y = self.alto // 2 - 120 # MODIFICADO: Subir un poco
             x_centro = self.ancho // 2
 
+            # MODIFICADO: Itera sobre self.opciones (que ahora se actualiza)
             for i, opcion in enumerate(self.opciones):
                 indice_real = i + 1
                 y = inicio_y + i * espacio_vertical
@@ -242,20 +256,23 @@ class Menu:
                                 self.volumen_sfx = selector.mostrar()
                         else:
                             # Confirmar botón principal con DERECHA (D3)
+                            # MODIFICADO: usa self.opciones que ya está traducido
                             seleccion = self.opciones[self.opcion_seleccionada - 1]
                             
-                            if seleccion in ["Jugar", "Play"]:
+                            # Compara con las claves en inglés (que no cambian)
+                            clave_en = self.textos["en"]["opciones"][self.opcion_seleccionada - 1]
+
+                            if clave_en == "Play":
                                 return "jugar"
-                            elif seleccion in ["Elegir Mundo", "Choose World"]:
+                            elif clave_en == "Choose World":
                                 return "mundo"
-                            # MODIFICADO: Nueva opción
-                            elif seleccion in ["Elegir Personaje", "Choose Character"]:
+                            elif clave_en == "Choose Character":
                                 return "personaje"
-                            elif seleccion in ["Ver Rankings", "View Rankings"]:
+                            elif clave_en == "View Rankings":
                                 # MODIFICADO: Pasa el arduino_serial y el idioma
                                 pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto, self.arduino_serial, self.idioma)
                                 pantalla_ranking.mostrar()
-                            elif seleccion in ["Salir", "Exit"]:
+                            elif clave_en == "Exit":
                                 return "salir" # Devuelve "salir" para que main.py lo maneje
 
             pygame.display.flip()

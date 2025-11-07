@@ -23,6 +23,9 @@ FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Dino")
 
+# --- RUTA DE IMÁGENES (MOVIDA ARRIBA) ---
+RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
+
 # ----------------------------------------------------
 # ⬇️ CONFIGURACIÓN Y CONEXIÓN SERIAL (GLOBAL) ⬇️
 # ----------------------------------------------------
@@ -42,15 +45,111 @@ except Exception as e:
 # ⬆️ FIN CONFIGURACIÓN SERIAL ⬆️
 # ----------------------------------------------------
 
+# --- FUENTES GLOBALES PARA PANTALLA INICIAL (NUEVO) ---
+try:
+    fuente_idioma_titulo = pygame.font.Font(None, 80)
+    fuente_idioma_opcion = pygame.font.Font(None, 60)
+except Exception as e:
+    print(f"Error al cargar fuentes: {e}")
+    if arduino_serial and arduino_serial.is_open:
+        arduino_serial.close()
+    pygame.quit()
+    sys.exit()
+
+# --- FUNCIÓN DIBUJAR TEXTO (NUEVO) ---
+def dibujar_texto_simple(pantalla, texto, fuente, color, x, y, centrado=True):
+    """Función helper para dibujar texto centrado o alineado."""
+    surf = fuente.render(texto, True, color)
+    rect = surf.get_rect(center=(x, y)) if centrado else surf.get_rect(topleft=(x, y))
+    pantalla.blit(surf, rect)
+
+# --- FUNCIÓN SELECCIONAR IDIOMA (NUEVO) ---
+def seleccionar_idioma_inicial(pantalla, ancho, alto):
+    """Muestra la pantalla inicial de selección de idioma."""
+    global arduino_serial # Importante usar la global
+    idioma_sel = "es"
+    clock = pygame.time.Clock()
+    
+    try:
+        ruta_fondo = os.path.join(RUTA_BASE, "fondo.png")
+        fondo_img = pygame.image.load(ruta_fondo).convert()
+        fondo_img = pygame.transform.scale(fondo_img, (ancho, alto))
+    except Exception as e:
+        print(f"Error al cargar fondo para selección de idioma: {e}")
+        fondo_img = None
+
+    while True:
+        if fondo_img:
+            pantalla.blit(fondo_img, (0, 0))
+        else:
+            pantalla.fill((25, 25, 35))
+
+        dibujar_texto_simple(pantalla, "Seleccionar Idioma / Select Language", 
+                             fuente_idioma_titulo, (255, 255, 255), ancho // 2, alto // 3)
+
+        color_es = (255, 230, 150) if idioma_sel == "es" else (200, 200, 200)
+        color_en = (255, 230, 150) if idioma_sel == "en" else (200, 200, 200)
+
+        dibujar_texto_simple(pantalla, "Español", fuente_idioma_opcion, color_es, 
+                             ancho // 2 - 150, alto // 2 + 50)
+        dibujar_texto_simple(pantalla, "English", fuente_idioma_opcion, color_en, 
+                             ancho // 2 + 150, alto // 2 + 50)
+
+        # --- Lectura Serial ---
+        if arduino_serial is not None and arduino_serial.is_open:
+            try:
+                while arduino_serial.in_waiting > 0:
+                    linea = arduino_serial.readline().decode('utf-8').strip()
+                    evento_tipo = None
+                    evento_key = None
+                    if linea == "LEFT_DOWN": # D5
+                        evento_tipo = pygame.KEYDOWN; evento_key = pygame.K_LEFT
+                    elif linea == "RIGHT_DOWN": # D3
+                        evento_tipo = pygame.KEYDOWN; evento_key = pygame.K_RIGHT
+                    elif linea == "UP_DOWN": # D2 (Confirmar)
+                        evento_tipo = pygame.KEYDOWN; evento_key = pygame.K_UP
+                    elif linea == "DOWN_DOWN": # D4 (Confirmar)
+                        evento_tipo = pygame.KEYDOWN; evento_key = pygame.K_DOWN
+                    
+                    if evento_tipo:
+                        pygame.event.post(pygame.event.Event(evento_tipo, key=evento_key))
+            except Exception as e:
+                print(f"[ERROR SERIAL] {e}")
+                try: arduino_serial.close()
+                except: pass
+                arduino_serial = None
+
+        # --- Eventos ---
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                if arduino_serial and arduino_serial.is_open:
+                    arduino_serial.close()
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT: # D5
+                    idioma_sel = "es"
+                elif event.key == pygame.K_RIGHT: # D3
+                    idioma_sel = "en"
+                elif event.key == pygame.K_UP or event.key == pygame.K_DOWN: # D2 o D4
+                    return idioma_sel
+                elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    return idioma_sel
+
+        pygame.display.flip()
+        clock.tick(60)
+
+# --- SELECCIONAR IDIOMA ANTES DE NADA (NUEVO) ---
+idioma_actual = seleccionar_idioma_inicial(VENTANA, ANCHO, ALTO)
+print(f"Idioma seleccionado: {idioma_actual}")
+
 
 # --- ELEGIR NOMBRE AL INICIO ---
-# MODIFICADO: Se pasa el objeto arduino_serial
-elegir_nombre = ElegirNombre(VENTANA, ANCHO, ALTO, arduino_serial) 
+# MODIFICADO: Se pasa el objeto arduino_serial y el idioma_actual
+elegir_nombre = ElegirNombre(VENTANA, ANCHO, ALTO, arduino_serial, idioma_actual) 
 nombre_jugador, id_usuario = elegir_nombre.mostrar()
 print(f"Jugador: {nombre_jugador} (ID: {id_usuario})")
 
-# --- RUTA DE IMÁGENES ---
-RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
 
 # --- COLORES ---
 BLANCO = (255, 255, 255)
@@ -405,8 +504,8 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
             VENTANA.blit(game_over_surf, game_over_rect)
             
             # MODIFICADO: Textos actualizados y debajo de la imagen
-            mostrar_texto("Presiona DERECHA (D3) para reiniciar", ANCHO // 2, game_over_rect.bottom + 40, BLANCO, VENTANA, centrado=True)
-            mostrar_texto("Presiona IZQUIERDA (D5) para volver al menú", ANCHO // 2, game_over_rect.bottom + 90, BLANCO, VENTANA, centrado=True)
+            mostrar_texto("Presiona DERECHA para reiniciar", ANCHO // 2, game_over_rect.bottom + 40, BLANCO, VENTANA, centrado=True)
+            mostrar_texto("Presiona IZQUIERDA para volver al menú", ANCHO // 2, game_over_rect.bottom + 90, BLANCO, VENTANA, centrado=True)
 
         pygame.display.flip()
     
@@ -424,8 +523,8 @@ mundo_actual = "noche"
 record_actual = 0 # El record se actualiza desde bucle_juego
 
 # --- MENÚ PRINCIPAL ---
-# MODIFICADO: Se pasa el record_actual
-menu = Menu(VENTANA, ANCHO, ALTO, record_actual, arduino_serial) 
+# MODIFICADO: Se pasa el record_actual y el idioma_actual
+menu = Menu(VENTANA, ANCHO, ALTO, record_actual, arduino_serial, idioma_actual) 
 menu.nombre_actual = nombre_jugador
 menu.id_usuario_actual = id_usuario
 
@@ -434,7 +533,7 @@ while True:
     menu.record_actual = record_actual # Actualiza el record en el menú
     
     # El idioma se obtiene del menú para pasarlo a otras pantallas
-    idioma_actual = menu.idioma 
+    idioma_actual = menu.idioma # <-- ¡MUY IMPORTANTE!
     
     opcion_menu = menu.mostrar() # "jugar", "mundo", "personaje", "salir"
 

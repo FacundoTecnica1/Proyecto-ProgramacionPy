@@ -119,12 +119,19 @@ class SelectorSonido:
             pygame.draw.rect(panel_surface, self.color_borde_panel, (0, 0, panel_width, panel_height), 3, border_radius=30)
             self.pantalla.blit(panel_surface, panel_rect)
 
-            # Texto “Efectos”
+            # --- Posición de la barra (para alinear el texto) ---
+            pos_x_barra = self.ancho // 2 - 180
+            pos_y_barra = panel_rect.centery - 22
+            ancho_barra = 360
+            alto_barra = 45
+
+            # Texto “Efectos” (MODIFICADO)
             texto = self.fuente_texto.render(self.txt["efectos"], True, self.color_texto)
-            self.pantalla.blit(texto, texto.get_rect(midright=(self.ancho // 2 - 250, panel_rect.centery - 10)))
+            # Alineado a la derecha, 20px a la izquierda de la barra
+            self.pantalla.blit(texto, texto.get_rect(midright=(pos_x_barra - 20, pos_y_barra + alto_barra // 2)))
 
             # Barra dentro del panel
-            self.dibujar_barra(self.ancho // 2 - 180, panel_rect.centery - 22, 360, 45, self.volumen_sfx, seleccionado=self.en_volumen)
+            self.dibujar_barra(pos_x_barra, pos_y_barra, ancho_barra, alto_barra, self.volumen_sfx, seleccionado=self.en_volumen)
 
             # Botón “Volver”
             boton_rect = pygame.Rect(self.ancho//2 - 100, panel_rect.bottom - 100, 200, 60)
