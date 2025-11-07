@@ -111,7 +111,8 @@ class Menu:
         pygame.draw.line(self.pantalla, color_borde, (centro_globo[0] - 8, centro_globo[1]), (centro_globo[0] + 8, centro_globo[1]), 1)
         pygame.draw.line(self.pantalla, color_borde, (centro_globo[0], centro_globo[1] - 8), (centro_globo[0], centro_globo[1] + 8), 1)
 
-        idioma_texto = "Español" if self.idioma == "es" else "English"
+        # CORREGIDO: Mostrar el idioma CONTRARIO (al que puedes cambiar)
+        idioma_texto = "English" if self.idioma == "es" else "Español"
         texto_surf = self.fuente_idioma.render(idioma_texto, True, color_borde)
         self.pantalla.blit(texto_surf, (centro_globo[0] + 25, self.rect_boton_idioma.centery - 12))
 

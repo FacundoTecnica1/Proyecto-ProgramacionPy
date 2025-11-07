@@ -532,10 +532,10 @@ menu.id_usuario_actual = id_usuario
 while True:
     menu.record_actual = record_actual # Actualiza el record en el menú
     
-    # El idioma se obtiene del menú para pasarlo a otras pantallas
-    idioma_actual = menu.idioma # <-- ¡MUY IMPORTANTE!
-    
     opcion_menu = menu.mostrar() # "jugar", "mundo", "personaje", "salir"
+    
+    # CORREGIDO: El idioma se obtiene del menú DESPUÉS de mostrarlo
+    idioma_actual = menu.idioma # <-- ¡MUY IMPORTANTE!
 
     if opcion_menu == "jugar":
         # Llamar a la función del juego con la configuración actual

@@ -75,7 +75,7 @@ class SeleccionPersonaje:
                 "volver": "BACK"
             }
         }
-        self.txt = self.textos[self.idioma]
+        self.actualizar_textos() # Asegurar que los textos se carguen correctamente
 
         # --- Fuentes ---
         self.fuente_titulo = pygame.font.Font(None, 90)
@@ -112,6 +112,10 @@ class SeleccionPersonaje:
 
         self.opciones = ["perro", "gato", "volver"]
         self.opcion_sel = 0 # 0 = Perro, 1 = Gato, 2 = Volver
+
+    def actualizar_textos(self):
+        """Actualiza los textos según el idioma actual"""
+        self.txt = self.textos[self.idioma]
 
     def dibujar_texto(self, texto, fuente, color, x, y, sombra=True, centrado=True):
         if sombra:

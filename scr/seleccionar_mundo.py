@@ -27,7 +27,7 @@ class SeleccionMundo:
                 "volver": "Back"
             }
         }
-        self.txt = self.textos[self.idioma]
+        self.actualizar_textos() # Asegurar que los textos se carguen correctamente
         
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_opciones = pygame.font.Font(None, 60)
@@ -55,6 +55,11 @@ class SeleccionMundo:
         # Estado
         self.seleccion_horizontal = 0  # 0 = noche, 1 = día
         self.en_boton_volver = False
+
+    # ------------------------------------------------------------
+    def actualizar_textos(self):
+        """Actualiza los textos según el idioma actual"""
+        self.txt = self.textos[self.idioma]
 
     # ------------------------------------------------------------
     def dibujar_texto(self, texto, fuente, color, x, y, centrado=True):
