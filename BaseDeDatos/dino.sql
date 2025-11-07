@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 24-10-2025 a las 04:26:18
+-- Tiempo de generación: 07-11-2025 a las 13:13:43
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -29,9 +29,19 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `ranking` (
   `Id_Ranking` int(11) NOT NULL,
-  `Id_Usuario` int(11) NOT NULL,
-  `Puntaje` int(11) NOT NULL
+  `Puntaje` int(11) NOT NULL,
+  `Id_Usuario` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `ranking`
+--
+
+INSERT INTO `ranking` (`Id_Ranking`, `Puntaje`, `Id_Usuario`) VALUES
+(1, 1500, 1),
+(2, 1200, 2),
+(3, 1800, 3),
+(4, 900, 4);
 
 -- --------------------------------------------------------
 
@@ -41,7 +51,7 @@ CREATE TABLE `ranking` (
 
 CREATE TABLE `usuario` (
   `Id_Usuario` int(11) NOT NULL,
-  `Nombre` text NOT NULL
+  `Nombre` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -49,19 +59,10 @@ CREATE TABLE `usuario` (
 --
 
 INSERT INTO `usuario` (`Id_Usuario`, `Nombre`) VALUES
-(7, 'AMOR'),
-(8, 'AMOR'),
-(9, 'ALOR'),
-(10, 'AKPR'),
-(11, 'AJPR'),
-(12, 'AJOR'),
-(13, 'BJOR'),
-(14, 'ZMNR'),
-(15, 'ZPKR'),
-(16, 'CODU'),
-(17, 'CPEU'),
-(18, 'CTEU'),
-(19, 'ATEU');
+(1, 'Alma'),
+(4, 'Malena'),
+(3, 'Nicolás'),
+(2, 'Santino');
 
 --
 -- Índices para tablas volcadas
@@ -78,7 +79,8 @@ ALTER TABLE `ranking`
 -- Indices de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  ADD PRIMARY KEY (`Id_Usuario`);
+  ADD PRIMARY KEY (`Id_Usuario`),
+  ADD UNIQUE KEY `Nombre` (`Nombre`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
@@ -88,13 +90,13 @@ ALTER TABLE `usuario`
 -- AUTO_INCREMENT de la tabla `ranking`
 --
 ALTER TABLE `ranking`
-  MODIFY `Id_Ranking` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `Id_Ranking` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `Id_Usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `Id_Usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Restricciones para tablas volcadas
