@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dino Game - Juego del Dinosaurio</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="logo">
+                    <i class="fas fa-dragon"></i>
+                    <h1>Dino Game</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="#inicio" class="nav-link">Inicio</a></li>
+                    <li><a href="#instrucciones" class="nav-link">Instrucciones</a></li>
+                    <li><a href="#galeria" class="nav-link">Galería</a></li>
+                    <li><a href="#faq" class="nav-link">FAQ</a></li>
+                    <li><a href="#sugerencias" class="nav-link">Sugerencias</a></li>
+                    <li><a href="#creadores" class="nav-link">Creadores</a></li>
+                    <li><a href="#descarga" class="nav-link">Descarga</a></li>
+                </ul>
+                <div class="nav-auth">
+                    <div id="auth-buttons" class="auth-buttons">
+                        <button id="register-btn" class="btn-auth">Registrarse</button>
+                    </div>
+                    <div id="user-info" class="user-info" style="display: none;">
+                        <span id="username-display"></span>
+                        <div class="user-dropdown">
+                            <button id="dropdown-btn" class="dropdown-btn">
+                                <i class="fas fa-user-circle"></i>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                <button id="delete-btn" class="dropdown-item danger">Eliminar Cuenta</button>
+                                <hr>
+                                <button id="logout-btn" class="dropdown-item">Cerrar Sesión</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hamburger">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="inicio" class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">🦖 Dino Game</h1>
+            <p class="hero-subtitle">El clásico juego del dinosaurio, reimaginado con nuevas mecánicas</p>
+            <div class="hero-buttons">
+                <a href="#descarga" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Descargar Juego
+                </a>
+                <a href="#instrucciones" class="btn btn-secondary">
+                    <i class="fas fa-gamepad"></i> Cómo Jugar
+                </a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="../img/fondo.png" alt="Dino Game Screenshot" class="hero-img">
+        </div>
+    </section>
+
+    <!-- Instrucciones Section -->
+    <section id="instrucciones" class="section bg-dark">
+        <div class="container">
+            <h2 class="section-title">📋 Instrucciones</h2>
+            <div class="instructions-grid">
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <h3>Saltar</h3>
+                    <p>Presiona <strong>ESPACIO</strong> o <strong>↑</strong> para saltar sobre los obstáculos</p>
+                </div>
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <h3>Agacharse</h3>
+                    <p>Mantén <strong>↓</strong> para agacharte y evitar obstáculos aéreos</p>
+                </div>
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <h3>Navegación</h3>
+                    <p>Usa <strong>← →</strong> para navegar entre menús y opciones</p>
+                </div>
+                <div class="instruction-card">
+                    <div class="instruction-icon">
+                        <i class="fas fa-pause"></i>
+                    </div>
+                    <h3>Pausar</h3>
+                    <p>Presiona <strong>ESC</strong> para pausar el juego o volver al menú</p>
+                </div>
+            </div>
+            <div class="manual-link">
+                <a href="https://docs.google.com/document/d/1ztkTsi6y9YvGDC7K-BrUiye13_bU1RyW0znbrmTO70o/edit?usp=sharing" class="btn btn-outline" target="_blank">
+                    <i class="fas fa-book"></i> Manual Completo del Usuario
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Galería Section -->
+    <section id="galeria" class="section bg-light">
+        <div class="container">
+            <h2 class="section-title">🖼️ Galería del Juego</h2>
+            <div class="carousel-container">
+                <div class="carousel" id="gameCarousel">
+                    <div class="carousel-slide active">
+                        <img src="../img/fondo.png" alt="Fondo principal del juego">
+                        <div class="slide-caption">Fondo principal del juego</div>
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="../img/fondo2.png" alt="Segundo fondo del juego">
+                        <div class="slide-caption">Fondo alternativo del juego</div>
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="../img/JuegoCaptura.PNG" alt="Captura del juego en acción">
+                        <div class="slide-caption">Captura del juego en acción</div>
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="../img/MenuCaptura.PNG" alt="Captura del menú principal">
+                        <div class="slide-caption">Menú principal del juego</div>
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="../img/ElegirPersonajeCaptura.PNG" alt="Captura de selección de personaje">
+                        <div class="slide-caption">Selección de personaje</div>
+                    </div>
+                </div>
+                <button class="carousel-btn prev" onclick="changeSlide(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="carousel-btn next" onclick="changeSlide(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <div class="carousel-indicators" id="carouselIndicators">
+                    <span class="indicator active" onclick="currentSlide(1)"></span>
+                    <span class="indicator" onclick="currentSlide(2)"></span>
+                    <span class="indicator" onclick="currentSlide(3)"></span>
+                    <span class="indicator" onclick="currentSlide(4)"></span>
+                    <span class="indicator" onclick="currentSlide(5)"></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="section bg-dark">
+        <div class="container">
+            <h2 class="section-title">❓ Preguntas Frecuentes</h2>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>¿Cómo instalo el juego?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Puedes descargar el instalador DinoSetup.exe desde la sección de descarga. Simplemente ejecuta el archivo y sigue las instrucciones de instalación.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>¿Necesito Python para jugar?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>No, si descargas el ejecutable no necesitas Python. Solo necesitas Python si quieres ejecutar el código fuente directamente.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>¿Cuáles son los controles del juego?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Los controles son simples: ESPACIO o ↑ para saltar, ↓ para agacharse, y las flechas ← → para navegar en los menús. ESC pausa el juego.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>¿Qué personajes puedo elegir?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Actualmente puedes elegir entre un gato y un perro, cada uno con sus propias animaciones y sprites únicos.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3>¿Hay diferentes niveles de dificultad?</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>El juego aumenta gradualmente la velocidad conforme avanzas, haciendo que sea más desafiante mientras más tiempo juegues.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sugerencias Section -->
+    <section id="sugerencias" class="section bg-light">
+        <div class="container">
+            <h2 class="section-title">💡 Sugerencias & Feedback</h2>
+            <p class="section-description">Tu opinión nos ayuda a mejorar. Comparte tus ideas con los desarrolladores</p>
+            
+            <!-- Mensaje para usuarios no autenticados -->
+            <div class="auth-required" id="authRequired">
+                <div class="suggestions-auth-card">
+                    <div class="auth-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>¡Únete a la comunidad!</h3>
+                    <p>Regístrate para compartir tus ideas y ayudarnos a hacer el mejor juego posible</p>
+                    <div class="auth-features">
+                        <div class="feature-item">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>Comparte ideas</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-star"></i>
+                            <span>Califica el juego</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Feedback privado</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-large" id="show-register-btn">
+                        <i class="fas fa-rocket"></i> Empezar Ahora
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Sección de usuario autenticado -->
+            <div class="user-logged" id="userLogged" style="display: none;">
+                <div class="suggestions-dashboard">
+                    <!-- Formulario simplificado -->
+                    <div class="suggestion-card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-edit"></i> Nueva Sugerencia</h4>
+                            <p>Comparte tus ideas directamente con el equipo de desarrollo</p>
+                        </div>
+                        
+                        <form id="suggestionForm" class="modern-form">
+                            <div class="input-group">
+                                <label for="suggestion-text">
+                                    <i class="fas fa-comment-alt"></i>
+                                    ¿Qué te gustaría mejorar?
+                                </label>
+                                <textarea 
+                                    id="suggestion-text" 
+                                    name="sugerencia" 
+                                    placeholder="Describe tu idea, problema encontrado, o sugerencia de mejora..."
+                                    rows="6"
+                                    required>
+                                </textarea>
+                                <div class="char-counter">
+                                    <span id="charCount">0</span>/500 caracteres
+                                </div>
+                            </div>
+                            
+                            <input type="hidden" id="suggestion-rating" name="valoracion" value="5">
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-gradient">
+                                    <i class="fas fa-paper-plane"></i>
+                                    Enviar Sugerencia
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="info-cards">
+                        <div class="info-card">
+                            <i class="fas fa-lock"></i>
+                            <h5>Privacidad</h5>
+                            <p>Solo los desarrolladores ven tu feedback</p>
+                        </div>
+                        <div class="info-card">
+                            <i class="fas fa-reply"></i>
+                            <h5>Respuesta</h5>
+                            <p>Revisamos cada sugerencia cuidadosamente</p>
+                        </div>
+                        <div class="info-card">
+                            <i class="fas fa-heart"></i>
+                            <h5>Impacto</h5>
+                            <p>Tu opinión mejora el juego para todos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Creadores Section -->
+    <section id="creadores" class="section bg-dark">
+        <div class="container">
+            <h2 class="section-title">👥 Nuestro Equipo</h2>
+            <p class="section-description">Conoce a los desarrolladores detrás de este proyecto escolar</p>
+            <div class="team-grid">
+                <div class="team-member">
+                    <div class="member-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h3>Alma Carena</h3>
+                    <p class="member-role">Desarrolladora</p>
+                    <div class="member-social">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h3>Facundo Noriega</h3>
+                    <p class="member-role">Desarrollador Principal</p>
+                    <div class="member-social">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h3>Mateo Lugo</h3>
+                    <p class="member-role">Desarrollador</p>
+                    <div class="member-social">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h3>Santino Trevisano</h3>
+                    <p class="member-role">Desarrollador</p>
+                    <div class="member-social">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                <div class="team-member">
+                    <div class="member-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h3>Severino Bassus</h3>
+                    <p class="member-role">Desarrollador</p>
+                    <div class="member-social">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="project-info">
+                <h3>Sobre el Proyecto</h3>
+                <p>Este es un proyecto escolar que replica el clásico juego del Dinosaurio usando Python y Pygame. Hemos mejorado la experiencia con mecánicas adicionales como agachado y salto preciso para hacer la experiencia más interesante y divertida.</p>
+                <p>El proyecto incluye soporte experimental para controles Arduino, múltiples personajes (gato y perro), efectos visuales mejorados y un sistema de puntuación con ranking guardado en base de datos.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Descarga Section -->
+    <section id="descarga" class="section bg-light">
+        <div class="container">
+            <h2 class="section-title">⬇️ Descarga el Juego</h2>
+            <div class="download-content">
+                <div class="download-info">
+                    <h3>Dos formas de jugar</h3>
+                    <p>Elige la opción que mejor se adapte a tus necesidades:</p>
+                </div>
+                <div class="download-options">
+                    <div class="download-option recommended">
+                        <div class="option-header">
+                            <i class="fas fa-rocket"></i>
+                            <h3>Instalador (Recomendado)</h3>
+                            <span class="badge">Fácil</span>
+                        </div>
+                        <p>Descarga e instala el juego directamente sin necesidad de configuraciones adicionales.</p>
+                        <ul class="option-features">
+                            <li><i class="fas fa-check"></i> Instalación automática</li>
+                            <li><i class="fas fa-check"></i> No requiere Python</li>
+                            <li><i class="fas fa-check"></i> Listo para jugar</li>
+                        </ul>
+                        <a href="https://raw.githubusercontent.com/FacundoTecnica1/Proyecto-ProgramacionPy/main/DinoSetup.exe" 
+                           class="btn btn-primary download-btn" 
+                           download="DinoSetup.exe">
+                            <i class="fas fa-download"></i> Descargar DinoSetup.exe
+                        </a>
+                        <p class="file-info">Tamaño: ~50MB | Windows 10/11</p>
+                    </div>
+                    <div class="download-option">
+                        <div class="option-header">
+                            <i class="fas fa-code"></i>
+                            <h3>Código Fuente</h3>
+                            <span class="badge">Avanzado</span>
+                        </div>
+                        <p>Para desarrolladores que quieren ejecutar o modificar el código fuente.</p>
+                        <ul class="option-features">
+                            <li><i class="fas fa-check"></i> Código completo</li>
+                            <li><i class="fas fa-check"></i> Modificable</li>
+                            <li><i class="fas fa-check"></i> Requiere Python 3.10+</li>
+                        </ul>
+                        <a href="https://github.com/FacundoTecnica1/Proyecto-ProgramacionPy" 
+                           class="btn btn-outline" 
+                           target="_blank">
+                            <i class="fab fa-github"></i> Ver en GitHub
+                        </a>
+                        <p class="file-info">Requiere: Python, Pygame, MySQL Connector</p>
+                    </div>
+                </div>
+            </div>
+            <div class="system-requirements">
+                <h3>Requisitos del Sistema</h3>
+                <div class="requirements-grid">
+                    <div class="requirement-item">
+                        <i class="fas fa-desktop"></i>
+                        <h4>Sistema Operativo</h4>
+                        <p>Windows 10/11 (64-bit)</p>
+                    </div>
+                    <div class="requirement-item">
+                        <i class="fas fa-memory"></i>
+                        <h4>RAM</h4>
+                        <p>Mínimo 4GB</p>
+                    </div>
+                    <div class="requirement-item">
+                        <i class="fas fa-hdd"></i>
+                        <h4>Almacenamiento</h4>
+                        <p>100MB libres</p>
+                    </div>
+                    <div class="requirement-item">
+                        <i class="fas fa-gamepad"></i>
+                        <h4>Controles</h4>
+                        <p>Teclado (Arduino opcional)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Dino Game</h3>
+                    <p>Un proyecto escolar desarrollado con pasión por el gaming y la programación.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Enlaces Rápidos</h3>
+                    <ul>
+                        <li><a href="#instrucciones">Instrucciones</a></li>
+                        <li><a href="#faq">FAQ</a></li>
+                        <li><a href="#descarga">Descarga</a></li>
+                        <li><a href="https://docs.google.com/document/d/1ztkTsi6y9YvGDC7K-BrUiye13_bU1RyW0znbrmTO70o/edit?usp=sharing" target="_blank">Manual</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Síguenos</h3>
+                    <div class="social-links">
+                        <a href="https://github.com/FacundoTecnica1/Proyecto-ProgramacionPy" target="_blank">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Dino Game Team. Proyecto Educativo.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal para autenticación -->
+    <div id="modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Registrarse</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Contenido del modal se genera dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
