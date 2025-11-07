@@ -18,9 +18,21 @@ class ElegirNombre:
         self.color_texto = (255, 255, 255)
         self.color_resaltado = (255, 215, 100)
         self.color_fondo = (25, 25, 35)
-        self.fuente_titulo = pygame.font.Font(None, 100)
-        self.fuente_letra = pygame.font.Font(None, 120)
-        self.fuente_info = pygame.font.Font(None, 40)
+        
+        # Cambio a fuentes Arial como solicitado
+        try:
+            self.fuente_titulo = pygame.font.SysFont("arial", 100)
+            self.fuente_letra = pygame.font.SysFont("arial", 120)
+            self.fuente_info = pygame.font.SysFont("arial", 40)
+            self.fuente_boton = pygame.font.SysFont("arial", 50)
+        except Exception as e:
+            print(f"Error al cargar fuentes Arial: {e}")
+            # Fallback a fuentes por defecto
+            self.fuente_titulo = pygame.font.Font(None, 100)
+            self.fuente_letra = pygame.font.Font(None, 120)
+            self.fuente_info = pygame.font.Font(None, 40)
+            self.fuente_boton = pygame.font.Font(None, 50)
+            
         self.anim_tiempo = 0
 
         # --- Textos Multi-idioma (NUEVO) ---
@@ -122,6 +134,32 @@ class ElegirNombre:
     # ============================
     # 🎨 FONDO ANIMADO
     # ============================
+    def dibujar_boton_confirmacion(self, x, y, ancho=200, alto=60):
+        """Dibuja un botón de confirmación estilizado."""
+        # Colores del botón
+        color_fondo = (80, 200, 120, 180)  # Verde translúcido
+        color_borde = (255, 255, 255)      # Borde blanco
+        grosor_borde = 3
+        
+        # Crear superficie para el botón con transparencia
+        boton_rect = pygame.Rect(x - ancho//2, y - alto//2, ancho, alto)
+        
+        # Fondo del botón con transparencia
+        boton_surf = pygame.Surface((ancho, alto), pygame.SRCALPHA)
+        pygame.draw.rect(boton_surf, color_fondo, boton_surf.get_rect(), border_radius=15)
+        self.pantalla.blit(boton_surf, boton_rect.topleft)
+        
+        # Borde del botón
+        pygame.draw.rect(self.pantalla, color_borde, boton_rect, grosor_borde, border_radius=15)
+        
+        # Texto del botón
+        texto_confirmar = "CONFIRMAR ✓" if self.idioma == "es" else "CONFIRM ✓"
+        texto_surf = self.fuente_boton.render(texto_confirmar, True, (255, 255, 255))
+        texto_rect = texto_surf.get_rect(center=(x, y))
+        self.pantalla.blit(texto_surf, texto_rect)
+        
+        return boton_rect
+
     def gradiente_fondo(self):
         """Fondo animado tipo aurora, sin errores de color"""
         self.anim_tiempo += 0.015
@@ -181,6 +219,20 @@ class ElegirNombre:
                 
                 pygame.draw.rect(self.pantalla, color, caja_rect, 3, border_radius=15)
                 self.pantalla.blit(surf, rect)
+
+            # 📝 Instrucciones
+            instruccion_cambiar = "↑↓ Cambiar letra  •  ← → Navegar" if self.idioma == "es" else "↑↓ Change letter  •  ← → Navigate"
+            instruccion_surf = self.fuente_info.render(instruccion_cambiar, True, (200, 200, 200))
+            instruccion_rect = instruccion_surf.get_rect(center=(self.ancho // 2, self.alto // 2 + 100))
+            self.pantalla.blit(instruccion_surf, instruccion_rect)
+
+            # 🔄 Botón de confirmación (solo visible cuando está en la última posición)
+            if self.posicion_actual == 3:
+                self.dibujar_boton_confirmacion(self.ancho // 2, self.alto // 2 + 160)
+                confirmacion_texto = "Presiona → para confirmar" if self.idioma == "es" else "Press → to confirm"
+                confirmacion_surf = self.fuente_info.render(confirmacion_texto, True, (255, 215, 100))
+                confirmacion_rect = confirmacion_surf.get_rect(center=(self.ancho // 2, self.alto // 2 + 220))
+                self.pantalla.blit(confirmacion_surf, confirmacion_rect)
 
            
             # 🎧 Efectos visuales suaves

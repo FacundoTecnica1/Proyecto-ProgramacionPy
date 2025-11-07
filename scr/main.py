@@ -18,7 +18,7 @@ pygame.init()
 pygame.mixer.init()
 
 # --- CONFIGURACIÓN ---
-ANCHO, ALTO = 850, 670
+ANCHO, ALTO = 800, 700
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Dino")
@@ -47,14 +47,16 @@ except Exception as e:
 
 # --- FUENTES GLOBALES PARA PANTALLA INICIAL (NUEVO) ---
 try:
-    fuente_idioma_titulo = pygame.font.Font(None, 80)
-    fuente_idioma_opcion = pygame.font.Font(None, 60)
+    # Cambio a Arial como solicitado
+    fuente_idioma_titulo = pygame.font.SysFont("arial", 80)
+    fuente_idioma_opcion = pygame.font.SysFont("arial", 60)
+    fuente_idioma_info = pygame.font.SysFont("arial", 36)
 except Exception as e:
     print(f"Error al cargar fuentes: {e}")
-    if arduino_serial and arduino_serial.is_open:
-        arduino_serial.close()
-    pygame.quit()
-    sys.exit()
+    # Fallback a fuentes por defecto si Arial no está disponible
+    fuente_idioma_titulo = pygame.font.Font(None, 80)
+    fuente_idioma_opcion = pygame.font.Font(None, 60)
+    fuente_idioma_info = pygame.font.Font(None, 36)
 
 # --- FUNCIÓN DIBUJAR TEXTO (NUEVO) ---
 def dibujar_texto_simple(pantalla, texto, fuente, color, x, y, centrado=True):
@@ -63,9 +65,40 @@ def dibujar_texto_simple(pantalla, texto, fuente, color, x, y, centrado=True):
     rect = surf.get_rect(center=(x, y)) if centrado else surf.get_rect(topleft=(x, y))
     pantalla.blit(surf, rect)
 
+# --- FUNCIÓN DIBUJAR BOTÓN (NUEVO) ---
+def dibujar_boton(pantalla, texto, fuente, color_texto, x, y, ancho=300, alto=80, seleccionado=False):
+    """Dibuja un botón estilizado con bordes y efectos."""
+    # Colores del botón
+    if seleccionado:
+        color_fondo = (80, 120, 200, 180)  # Azul translúcido cuando está seleccionado
+        color_borde = (255, 230, 150)      # Borde dorado
+        grosor_borde = 4
+    else:
+        color_fondo = (40, 40, 60, 150)    # Gris oscuro translúcido
+        color_borde = (150, 150, 150)      # Borde gris
+        grosor_borde = 2
+    
+    # Crear superficie para el botón con transparencia
+    boton_rect = pygame.Rect(x - ancho//2, y - alto//2, ancho, alto)
+    
+    # Fondo del botón con transparencia
+    boton_surf = pygame.Surface((ancho, alto), pygame.SRCALPHA)
+    pygame.draw.rect(boton_surf, color_fondo, boton_surf.get_rect(), border_radius=15)
+    pantalla.blit(boton_surf, boton_rect.topleft)
+    
+    # Borde del botón
+    pygame.draw.rect(pantalla, color_borde, boton_rect, grosor_borde, border_radius=15)
+    
+    # Texto del botón
+    texto_surf = fuente.render(texto, True, color_texto)
+    texto_rect = texto_surf.get_rect(center=(x, y))
+    pantalla.blit(texto_surf, texto_rect)
+    
+    return boton_rect
+
 # --- FUNCIÓN SELECCIONAR IDIOMA (NUEVO) ---
 def seleccionar_idioma_inicial(pantalla, ancho, alto):
-    """Muestra la pantalla inicial de selección de idioma."""
+    """Muestra la pantalla inicial de selección de idioma con botones estilizados."""
     global arduino_serial # Importante usar la global
     idioma_sel = "es"
     clock = pygame.time.Clock()
@@ -79,21 +112,35 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
         fondo_img = None
 
     while True:
+        # Fondo
         if fondo_img:
             pantalla.blit(fondo_img, (0, 0))
         else:
             pantalla.fill((25, 25, 35))
 
+        # Título principal
         dibujar_texto_simple(pantalla, "Seleccionar Idioma / Select Language", 
                              fuente_idioma_titulo, (255, 255, 255), ancho // 2, alto // 3)
 
-        color_es = (255, 230, 150) if idioma_sel == "es" else (200, 200, 200)
-        color_en = (255, 230, 150) if idioma_sel == "en" else (200, 200, 200)
+        # Instrucciones
+        dibujar_texto_simple(pantalla, "Usa las flechas para seleccionar / Use arrows to select", 
+                             fuente_idioma_info, (200, 200, 200), ancho // 2, alto // 3 + 80)
 
-        dibujar_texto_simple(pantalla, "Español", fuente_idioma_opcion, color_es, 
-                             ancho // 2 - 150, alto // 2 + 50)
-        dibujar_texto_simple(pantalla, "English", fuente_idioma_opcion, color_en, 
-                             ancho // 2 + 150, alto // 2 + 50)
+        # Botones de idioma
+        color_texto_es = (255, 255, 255) if idioma_sel == "es" else (200, 200, 200)
+        color_texto_en = (255, 255, 255) if idioma_sel == "en" else (200, 200, 200)
+
+        # Botón Español
+        dibujar_boton(pantalla, "🇪🇸 Español", fuente_idioma_opcion, color_texto_es, 
+                     ancho // 2 - 200, alto // 2 + 50, 280, 70, idioma_sel == "es")
+        
+        # Botón English  
+        dibujar_boton(pantalla, "🇺🇸 English", fuente_idioma_opcion, color_texto_en, 
+                     ancho // 2 + 200, alto // 2 + 50, 280, 70, idioma_sel == "en")
+
+        # Instrucciones de confirmación
+        dibujar_texto_simple(pantalla, "Presiona ARRIBA/ABAJO para confirmar / Press UP/DOWN to confirm", 
+                             fuente_idioma_info, (180, 180, 180), ancho // 2, alto // 2 + 150)
 
         # --- Lectura Serial ---
         if arduino_serial is not None and arduino_serial.is_open:
