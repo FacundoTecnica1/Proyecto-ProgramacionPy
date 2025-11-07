@@ -6,7 +6,6 @@ Este es un proyecto escolar que replica el clásico juego del Dinosaurio usando 
 En esta rama se han añadido mecánicas adicionales sobre el clásico:
 - Agachado en suelo (flecha abajo): comprime la altura del jugador.
 - Flotación en aire (mantener abajo mientras se cae): reduce la gravedad para una caída lenta y notable.
-- Dash aéreo (combinación SPACE + DOWN o DOWN + SPACE): congelamiento vertical breve que acelera el mundo (efecto de empuje). Dash sólo en el aire, duración 0.2s.
 
 ---
 
