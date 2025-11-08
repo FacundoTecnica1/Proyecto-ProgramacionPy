@@ -18,7 +18,7 @@ pygame.init()
 pygame.mixer.init()
 
 # --- CONFIGURACIÓN ---
-ANCHO, ALTO = 800, 700
+ANCHO, ALTO = 850, 670
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Dino")
@@ -47,58 +47,34 @@ except Exception as e:
 
 # --- FUENTES GLOBALES PARA PANTALLA INICIAL (NUEVO) ---
 try:
-    # Cambio a Arial como solicitado
-    fuente_idioma_titulo = pygame.font.SysFont("arial", 80)
-    fuente_idioma_opcion = pygame.font.SysFont("arial", 60)
-    fuente_idioma_info = pygame.font.SysFont("arial", 36)
+    # MODIFICADO: Reducido de 80 a 65 para que quepa en pantalla
+    fuente_idioma_titulo = pygame.font.Font(None, 65) 
+    fuente_idioma_opcion = pygame.font.Font(None, 60)
+    # MODIFICADO: Fuente para instrucciones más grande
+    fuente_idioma_instruccion = pygame.font.Font(None, 40) 
 except Exception as e:
     print(f"Error al cargar fuentes: {e}")
-    # Fallback a fuentes por defecto si Arial no está disponible
-    fuente_idioma_titulo = pygame.font.Font(None, 80)
-    fuente_idioma_opcion = pygame.font.Font(None, 60)
-    fuente_idioma_info = pygame.font.Font(None, 36)
+    if arduino_serial and arduino_serial.is_open:
+        arduino_serial.close()
+    pygame.quit()
+    sys.exit()
 
-# --- FUNCIÓN DIBUJAR TEXTO (NUEVO) ---
-def dibujar_texto_simple(pantalla, texto, fuente, color, x, y, centrado=True):
-    """Función helper para dibujar texto centrado o alineado."""
+# --- FUNCIÓN DIBUJAR TEXTO (MODIFICADA CON SOMBRA) ---
+def dibujar_texto_simple(pantalla, texto, fuente, color, x, y, centrado=True, sombra_color=(0,0,0)):
+    """Función helper para dibujar texto centrado o alineado con sombra."""
+    # Sombra
+    sombra_surf = fuente.render(texto, True, sombra_color)
+    sombra_rect = sombra_surf.get_rect(center=(x + 2, y + 2)) if centrado else sombra_surf.get_rect(topleft=(x + 2, y + 2))
+    pantalla.blit(sombra_surf, sombra_rect)
+    
+    # Texto
     surf = fuente.render(texto, True, color)
     rect = surf.get_rect(center=(x, y)) if centrado else surf.get_rect(topleft=(x, y))
     pantalla.blit(surf, rect)
 
-# --- FUNCIÓN DIBUJAR BOTÓN (NUEVO) ---
-def dibujar_boton(pantalla, texto, fuente, color_texto, x, y, ancho=300, alto=80, seleccionado=False):
-    """Dibuja un botón estilizado con bordes y efectos."""
-    # Colores del botón
-    if seleccionado:
-        color_fondo = (80, 120, 200, 180)  # Azul translúcido cuando está seleccionado
-        color_borde = (255, 230, 150)      # Borde dorado
-        grosor_borde = 4
-    else:
-        color_fondo = (40, 40, 60, 150)    # Gris oscuro translúcido
-        color_borde = (150, 150, 150)      # Borde gris
-        grosor_borde = 2
-    
-    # Crear superficie para el botón con transparencia
-    boton_rect = pygame.Rect(x - ancho//2, y - alto//2, ancho, alto)
-    
-    # Fondo del botón con transparencia
-    boton_surf = pygame.Surface((ancho, alto), pygame.SRCALPHA)
-    pygame.draw.rect(boton_surf, color_fondo, boton_surf.get_rect(), border_radius=15)
-    pantalla.blit(boton_surf, boton_rect.topleft)
-    
-    # Borde del botón
-    pygame.draw.rect(pantalla, color_borde, boton_rect, grosor_borde, border_radius=15)
-    
-    # Texto del botón
-    texto_surf = fuente.render(texto, True, color_texto)
-    texto_rect = texto_surf.get_rect(center=(x, y))
-    pantalla.blit(texto_surf, texto_rect)
-    
-    return boton_rect
-
-# --- FUNCIÓN SELECCIONAR IDIOMA (NUEVO) ---
+# --- FUNCIÓN SELECCIONAR IDIOMA (MODIFICADO) ---
 def seleccionar_idioma_inicial(pantalla, ancho, alto):
-    """Muestra la pantalla inicial de selección de idioma con botones estilizados."""
+    """Muestra la pantalla inicial de selección de idioma."""
     global arduino_serial # Importante usar la global
     idioma_sel = "es"
     clock = pygame.time.Clock()
@@ -112,37 +88,47 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
         fondo_img = None
 
     while True:
-        # Fondo
         if fondo_img:
             pantalla.blit(fondo_img, (0, 0))
         else:
             pantalla.fill((25, 25, 35))
 
-        # Título principal
         dibujar_texto_simple(pantalla, "Seleccionar Idioma / Select Language", 
                              fuente_idioma_titulo, (255, 255, 255), ancho // 2, alto // 3)
 
-        # Instrucciones
-        dibujar_texto_simple(pantalla, "Usa las flechas para seleccionar / Use arrows to select", 
-                             fuente_idioma_info, (200, 200, 200), ancho // 2, alto // 3 + 80)
+        color_es = (255, 230, 150) if idioma_sel == "es" else (200, 200, 200)
+        color_en = (255, 230, 150) if idioma_sel == "en" else (200, 200, 200)
 
-        # Botones de idioma
-        color_texto_es = (255, 255, 255) if idioma_sel == "es" else (200, 200, 200)
-        color_texto_en = (255, 255, 255) if idioma_sel == "en" else (200, 200, 200)
+        dibujar_texto_simple(pantalla, "Español", fuente_idioma_opcion, color_es, 
+                             ancho // 2 - 150, alto // 2 + 50)
+        dibujar_texto_simple(pantalla, "English", fuente_idioma_opcion, color_en, 
+                             ancho // 2 + 150, alto // 2 + 50)
 
-        # Botón Español
-        dibujar_boton(pantalla, "🇪🇸 Español", fuente_idioma_opcion, color_texto_es, 
-                     ancho // 2 - 200, alto // 2 + 50, 280, 70, idioma_sel == "es")
+        # --- INSTRUCCIONES (MODIFICADO) ---
+        texto_inst_es = "Use 'Flecha Izquierda' / 'Flecha Derecha' para cambiar."
+        texto_inst_en = "Use 'Left Arrow' / 'Right Arrow' to toggle."
+        texto_inst_confirmar_es = "Confirme con 'Flecha Derecha'"
+        texto_inst_confirmar_en = "Confirm with 'Right Arrow'"
+
+        color_instruccion = (255, 230, 150) # Amarillo brillante
+
+        # MODIFICADO: Reagrupado y re-espaciado para mejor estética
         
-        # Botón English  
-        dibujar_boton(pantalla, "🇺🇸 English", fuente_idioma_opcion, color_texto_en, 
-                     ancho // 2 + 200, alto // 2 + 50, 280, 70, idioma_sel == "en")
+        # Grupo Español
+        dibujar_texto_simple(pantalla, texto_inst_es, fuente_idioma_instruccion, color_instruccion,
+                             ancho // 2, alto // 2 + 140)
+        dibujar_texto_simple(pantalla, texto_inst_confirmar_es, fuente_idioma_instruccion, color_instruccion,
+                             ancho // 2, alto // 2 + 180)
+        
+        # Grupo Inglés (con más espacio entre "es" y "en")
+        dibujar_texto_simple(pantalla, texto_inst_en, fuente_idioma_instruccion, color_instruccion,
+                             ancho // 2, alto // 2 + 240)
+        dibujar_texto_simple(pantalla, texto_inst_confirmar_en, fuente_idioma_instruccion, color_instruccion,
+                             ancho // 2, alto // 2 + 280)
+        # --- FIN INSTRUCCIONES ---
 
-        # Instrucciones de confirmación
-        dibujar_texto_simple(pantalla, "Presiona ARRIBA/ABAJO para confirmar / Press UP/DOWN to confirm", 
-                             fuente_idioma_info, (180, 180, 180), ancho // 2, alto // 2 + 150)
 
-        # --- Lectura Serial ---
+        # --- Lectura Serial (MODIFICADO) ---
         if arduino_serial is not None and arduino_serial.is_open:
             try:
                 while arduino_serial.in_waiting > 0:
@@ -153,10 +139,8 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
                         evento_tipo = pygame.KEYDOWN; evento_key = pygame.K_LEFT
                     elif linea == "RIGHT_DOWN": # D3
                         evento_tipo = pygame.KEYDOWN; evento_key = pygame.K_RIGHT
-                    elif linea == "UP_DOWN": # D2 (Confirmar)
-                        evento_tipo = pygame.KEYDOWN; evento_key = pygame.K_UP
-                    elif linea == "DOWN_DOWN": # D4 (Confirmar)
-                        evento_tipo = pygame.KEYDOWN; evento_key = pygame.K_DOWN
+                    
+                    # Se ignoran UP y DOWN
                     
                     if evento_tipo:
                         pygame.event.post(pygame.event.Event(evento_tipo, key=evento_key))
@@ -166,7 +150,7 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
                 except: pass
                 arduino_serial = None
 
-        # --- Eventos ---
+        # --- Eventos (MODIFICADO) ---
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if arduino_serial and arduino_serial.is_open:
@@ -175,13 +159,14 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT: # D5
-                    idioma_sel = "es"
+                    idioma_sel = "en" if idioma_sel == "es" else "es" # Alternar
                 elif event.key == pygame.K_RIGHT: # D3
-                    idioma_sel = "en"
-                elif event.key == pygame.K_UP or event.key == pygame.K_DOWN: # D2 o D4
+                    return idioma_sel # Confirmar
+                
+                # Mantener K_RETURN por si no hay Arduino
+                elif event.key == pygame.K_RETURN: 
                     return idioma_sel
-                elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                    return idioma_sel
+
 
         pygame.display.flip()
         clock.tick(60)
@@ -303,7 +288,8 @@ def actualizar_volumen_sfx(volumen):
 # =================================================================
 # ⬇️ NUEVA FUNCIÓN: BUCLE_JUEGO ⬇️
 # =================================================================
-def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, volumen_sfx, record_previo):
+# MODIFICADO: Añadido 'idioma'
+def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, volumen_sfx, record_previo, idioma="es"):
     
     # ⬇️⬇️⬇️ ESTA ES LA LÍNEA AÑADIDA ⬇️⬇️⬇️
     global arduino_serial 
@@ -354,6 +340,19 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
 
     # --- Aplicar volumen ---
     actualizar_volumen_sfx(volumen_sfx)
+
+    # --- Textos Game Over (NUEVO) ---
+    textos_gameover = {
+        "es": {
+            "reiniciar": "Presiona 'Flecha Derecha' para reiniciar",
+            "menu": "Presiona 'Flecha Izquierda' para volver al menú"
+        },
+        "en": {
+            "reiniciar": "Press 'Right Arrow' to restart",
+            "menu": "Press 'Left Arrow' to return to menu"
+        }
+    }
+    txt_go = textos_gameover.get(idioma, textos_gameover["es"])
 
 
     # --- BUCLE PRINCIPAL DEL JUEGO ---
@@ -550,9 +549,9 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
             game_over_rect = game_over_surf.get_rect(center=(ANCHO // 2, ALTO // 2 - 50)) # Subir un poco
             VENTANA.blit(game_over_surf, game_over_rect)
             
-            # MODIFICADO: Textos actualizados y debajo de la imagen
-            mostrar_texto("Presiona DERECHA para reiniciar", ANCHO // 2, game_over_rect.bottom + 40, BLANCO, VENTANA, centrado=True)
-            mostrar_texto("Presiona IZQUIERDA para volver al menú", ANCHO // 2, game_over_rect.bottom + 90, BLANCO, VENTANA, centrado=True)
+            # MODIFICADO: Textos multi-idioma
+            mostrar_texto(txt_go["reiniciar"], ANCHO // 2, game_over_rect.bottom + 40, BLANCO, VENTANA, centrado=True)
+            mostrar_texto(txt_go["menu"], ANCHO // 2, game_over_rect.bottom + 90, BLANCO, VENTANA, centrado=True)
 
         pygame.display.flip()
     
@@ -586,7 +585,8 @@ while True:
 
     if opcion_menu == "jugar":
         # Llamar a la función del juego con la configuración actual
-        record_actual = bucle_juego(personaje_actual, mundo_actual, nombre_jugador, id_usuario, menu.volumen_sfx, record_actual)
+        # MODIFICADO: Se pasa 'idioma_actual'
+        record_actual = bucle_juego(personaje_actual, mundo_actual, nombre_jugador, id_usuario, menu.volumen_sfx, record_actual, idioma_actual)
         # Actualizar volumen (por si se cambió en el menú)
         actualizar_volumen_sfx(menu.volumen_sfx)
     

@@ -32,7 +32,8 @@ class Menu:
         }
         self.actualizar_textos() # <-- MODIFICADO
 
-        self.opcion_seleccionada = 0  # 0 = configuración superior
+        # MODIFICADO: Empezar en "Jugar" (índice 1)
+        self.opcion_seleccionada = 1  # 0 = config superior, 1 = Jugar, ...
         self.seleccion_horizontal = 0  # 0 = idioma, 1 = música
 
         # Colores y fuentes

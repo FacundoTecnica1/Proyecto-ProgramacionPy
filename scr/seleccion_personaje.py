@@ -2,7 +2,7 @@ import pygame
 import sys
 import os
 import random
-import serial # <-- MODIFICADO: Importado
+import serial 
 
 
 # --- FUNCIÓN PARA CARGAR IMAGEN ---
@@ -60,19 +60,23 @@ class SeleccionPersonaje:
         self.arduino_serial = arduino_serial # <-- MODIFICADO
         self.idioma = idioma
 
-        # --- Textos Multi-idioma ---
+        # --- Textos Multi-idioma (MODIFICADO) ---
         self.textos = {
             "es": {
                 "titulo": "Selecciona tu personaje",
                 "perro": "Perro",
                 "gato": "Gato",
-                "volver": "VOLVER"
+                "volver": "VOLVER",
+                "instruccion1": "Use 'Flecha Izquierda' para cambiar.",
+                "instruccion2": "Use 'Flecha Abajo' para Volver. Use 'Flecha Derecha' para confirmar."
             },
             "en": {
                 "titulo": "Select your character",
                 "perro": "Dog",
                 "gato": "Cat",
-                "volver": "BACK"
+                "volver": "BACK",
+                "instruccion1": "Use 'Left Arrow' to change.",
+                "instruccion2": "Use 'Down Arrow' for Back. Use 'Right Arrow' to confirm."
             }
         }
         self.actualizar_textos() # Asegurar que los textos se carguen correctamente
@@ -81,6 +85,8 @@ class SeleccionPersonaje:
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_nombre = pygame.font.Font(None, 60)
         self.fuente_volver = pygame.font.Font(None, 55)
+        # MODIFICADO: Fuente para instrucciones más grande
+        self.fuente_instruccion = pygame.font.Font(None, 35)
 
         # --- Colores ---
         self.color_marco = (220, 220, 220)
@@ -93,12 +99,12 @@ class SeleccionPersonaje:
         self.fondo = pygame.image.load(os.path.join(ruta_base, "fondo.png")).convert()
         self.fondo = pygame.transform.scale(self.fondo, (ancho, alto))
 
-        # --- Animaciones ---
+        # --- Animaciones (MODIFICADO: Escalado a 200px) ---
         self.frames_perro = escalar_lista(
-            [escalar_y_cuadrar(cargar_imagen(f"perro_run{i}.png"), 220) for i in range(1, 5)], 220, 220
+            [escalar_y_cuadrar(cargar_imagen(f"perro_run{i}.png"), 200) for i in range(1, 5)], 200, 200
         )
         self.frames_gato = escalar_lista(
-            [escalar_y_cuadrar(cargar_imagen(f"gato_run{i}.png"), 220) for i in range(1, 5)], 220, 220
+            [escalar_y_cuadrar(cargar_imagen(f"gato_run{i}.png"), 200) for i in range(1, 5)], 200, 200
         )
 
         # --- Control de frames ---
@@ -130,7 +136,8 @@ class SeleccionPersonaje:
         self.pantalla.blit(texto_surface, rect)
 
     def dibujar_tarjeta(self, nombre, imagen, x, y, seleccionado=False, polvos=None):
-        ancho_card, alto_card = 260, 340
+        # MODIFICADO: Tarjetas más pequeñas
+        ancho_card, alto_card = 240, 320 
         card_rect = pygame.Rect(x - ancho_card // 2, y - alto_card // 2, ancho_card, alto_card)
 
         superficie_card = pygame.Surface((ancho_card, alto_card), pygame.SRCALPHA)
@@ -159,7 +166,7 @@ class SeleccionPersonaje:
 
         # --- Nombre ---
         color_texto = self.color_hover if seleccionado else self.color_texto
-        self.dibujar_texto(nombre.upper(), self.fuente_nombre, color_texto, x, y + 110)
+        self.dibujar_texto(nombre.upper(), self.fuente_nombre, color_texto, x, y + 100) # Ajustado Y
 
         if seleccionado:
             brillo = pygame.Surface((ancho_card, alto_card), pygame.SRCALPHA)
@@ -175,7 +182,7 @@ class SeleccionPersonaje:
             self.pantalla.blit(self.fondo, (0, 0))
 
             self.dibujar_texto(self.txt["titulo"], self.fuente_titulo,
-                               (255, 255, 255), self.ancho // 2, 100)
+                               (255, 255, 255), self.ancho // 2, 80) # Subido
 
             if anim > 10 or anim < -10:
                 direccion *= -1
@@ -188,14 +195,15 @@ class SeleccionPersonaje:
                 self.frame_index_gato = (self.frame_index_gato + 1) % len(self.frames_gato)
 
                 # Generar polvo cada cambio de frame
-                self.polvos_perro.append(Polvo(self.ancho // 2 - 200, self.alto // 2 + 140))
-                self.polvos_gato.append(Polvo(self.ancho // 2 + 200, self.alto // 2 + 140))
+                self.polvos_perro.append(Polvo(self.ancho // 2 - 200, self.alto // 2 + 120)) # Subido
+                self.polvos_gato.append(Polvo(self.ancho // 2 + 200, self.alto // 2 + 120)) # Subido
 
             perro_img = self.frames_perro[self.frame_index_perro]
             gato_img = self.frames_gato[self.frame_index_gato]
 
-            centro_y = self.alto // 2 + 40
-            sep_x = 200
+            # MODIFICADO: centro_y subido
+            centro_y = self.alto // 2 
+            sep_x = 180 # Más cerca
             x_perro = self.ancho // 2 - sep_x
             x_gato = self.ancho // 2 + sep_x
 
@@ -207,6 +215,27 @@ class SeleccionPersonaje:
                                  centro_y + (anim if self.opcion_sel == 1 else 0),
                                  seleccionado=(self.opcion_sel == 1),
                                  polvos=self.polvos_gato)
+
+            # ------------------------------------
+            # ⬇️ DIBUJAR INSTRUCCIONES (MODIFICADO) ⬇️
+            # ------------------------------------
+            color_inst = (255, 230, 150) # Amarillo brillante
+            self.dibujar_texto(self.txt["instruccion1"], 
+                               self.fuente_instruccion, 
+                               color_inst, 
+                               self.ancho // 2, 
+                               centro_y + 190, # Debajo de las tarjetas
+                               sombra=True) # Activar sombra
+            self.dibujar_texto(self.txt["instruccion2"], 
+                               self.fuente_instruccion, 
+                               color_inst, 
+                               self.ancho // 2, 
+                               centro_y + 225, # Debajo de las tarjetas
+                               sombra=True) # Activar sombra
+            # ------------------------------------
+            # ⬆️ FIN INSTRUCCIONES ⬆️
+            # ------------------------------------
+
 
             # --- Botón VOLVER (abajo centrado) ---
             boton_ancho, boton_alto = 200, 65

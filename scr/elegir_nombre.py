@@ -18,30 +18,26 @@ class ElegirNombre:
         self.color_texto = (255, 255, 255)
         self.color_resaltado = (255, 215, 100)
         self.color_fondo = (25, 25, 35)
-        
-        # Cambio a fuentes Arial como solicitado
-        try:
-            self.fuente_titulo = pygame.font.SysFont("arial", 100)
-            self.fuente_letra = pygame.font.SysFont("arial", 120)
-            self.fuente_info = pygame.font.SysFont("arial", 40)
-            self.fuente_boton = pygame.font.SysFont("arial", 50)
-        except Exception as e:
-            print(f"Error al cargar fuentes Arial: {e}")
-            # Fallback a fuentes por defecto
-            self.fuente_titulo = pygame.font.Font(None, 100)
-            self.fuente_letra = pygame.font.Font(None, 120)
-            self.fuente_info = pygame.font.Font(None, 40)
-            self.fuente_boton = pygame.font.Font(None, 50)
-            
+        self.fuente_titulo = pygame.font.Font(None, 100)
+        self.fuente_letra = pygame.font.Font(None, 120)
+        self.fuente_info = pygame.font.Font(None, 40)
+        # MODIFICADO: Fuente para instrucciones más grande
+        self.fuente_instruccion = pygame.font.Font(None, 35) 
         self.anim_tiempo = 0
 
-        # --- Textos Multi-idioma (NUEVO) ---
+        # --- Textos Multi-idioma (MODIFICADO) ---
         self.textos = {
             "es": {
-                "titulo": "ELIGE TU NOMBRE"
+                "titulo": "ELIGE TU NOMBRE",
+                "instruccion1": "Use 'Flecha Arriba'/'Flecha Abajo' para cambiar la letra.",
+                "instruccion2": "Use 'Flecha Izquierda'/'Flecha Derecha' para mover la casilla.",
+                "instruccion3": "Confirme con 'Flecha Derecha' en la última casilla."
             },
             "en": {
-                "titulo": "CHOOSE YOUR NAME"
+                "titulo": "CHOOSE YOUR NAME",
+                "instruccion1": "Use 'Up Arrow'/'Down Arrow' to change letter.",
+                "instruccion2": "Use 'Left Arrow'/'Right Arrow' to move slot.",
+                "instruccion3": "Confirm with 'Right Arrow' on the last slot."
             }
         }
         self.txt = self.textos[self.idioma]
@@ -134,32 +130,6 @@ class ElegirNombre:
     # ============================
     # 🎨 FONDO ANIMADO
     # ============================
-    def dibujar_boton_confirmacion(self, x, y, ancho=200, alto=60):
-        """Dibuja un botón de confirmación estilizado."""
-        # Colores del botón
-        color_fondo = (80, 200, 120, 180)  # Verde translúcido
-        color_borde = (255, 255, 255)      # Borde blanco
-        grosor_borde = 3
-        
-        # Crear superficie para el botón con transparencia
-        boton_rect = pygame.Rect(x - ancho//2, y - alto//2, ancho, alto)
-        
-        # Fondo del botón con transparencia
-        boton_surf = pygame.Surface((ancho, alto), pygame.SRCALPHA)
-        pygame.draw.rect(boton_surf, color_fondo, boton_surf.get_rect(), border_radius=15)
-        self.pantalla.blit(boton_surf, boton_rect.topleft)
-        
-        # Borde del botón
-        pygame.draw.rect(self.pantalla, color_borde, boton_rect, grosor_borde, border_radius=15)
-        
-        # Texto del botón
-        texto_confirmar = "CONFIRMAR ✓" if self.idioma == "es" else "CONFIRM ✓"
-        texto_surf = self.fuente_boton.render(texto_confirmar, True, (255, 255, 255))
-        texto_rect = texto_surf.get_rect(center=(x, y))
-        self.pantalla.blit(texto_surf, texto_rect)
-        
-        return boton_rect
-
     def gradiente_fondo(self):
         """Fondo animado tipo aurora, sin errores de color"""
         self.anim_tiempo += 0.015
@@ -184,6 +154,18 @@ class ElegirNombre:
             if letra in self.letras:
                 self.indice[i] = self.letras.index(letra)
 
+    # MODIFICADO: Añadido dibujar texto simple (con sombra)
+    def dibujar_texto_simple(self, texto, fuente, color, x, y, centrado=True, sombra_color=(0,0,0)):
+        # Sombra
+        sombra_surf = fuente.render(texto, True, sombra_color)
+        sombra_rect = sombra_surf.get_rect(center=(x + 2, y + 2)) if centrado else sombra_surf.get_rect(topleft=(x + 2, y + 2))
+        self.pantalla.blit(sombra_surf, sombra_rect)
+        
+        # Texto
+        surf = fuente.render(texto, True, color)
+        rect = surf.get_rect(center=(x, y)) if centrado else surf.get_rect(topleft=(x, y))
+        self.pantalla.blit(surf, rect)
+
     def mostrar(self):
         clock = pygame.time.Clock()
 
@@ -205,11 +187,12 @@ class ElegirNombre:
 
             # 🔤 Letras
             inicio_x = self.ancho // 2 - 1.5 * 140
+            pos_y_letras = self.alto // 2
             for i in range(4):
                 letra = self.letras[self.indice[i]]
                 color = self.color_resaltado if i == self.posicion_actual else self.color_texto
                 surf = self.fuente_letra.render(letra, True, color)
-                rect = surf.get_rect(center=(inicio_x + i * 140, self.alto // 2))
+                rect = surf.get_rect(center=(inicio_x + i * 140, pos_y_letras))
 
                 # Cuadro con borde y fondo translúcido
                 caja_rect = rect.inflate(50, 50)
@@ -220,19 +203,28 @@ class ElegirNombre:
                 pygame.draw.rect(self.pantalla, color, caja_rect, 3, border_radius=15)
                 self.pantalla.blit(surf, rect)
 
-            # 📝 Instrucciones
-            instruccion_cambiar = "↑↓ Cambiar letra  •  ← → Navegar" if self.idioma == "es" else "↑↓ Change letter  •  ← → Navigate"
-            instruccion_surf = self.fuente_info.render(instruccion_cambiar, True, (200, 200, 200))
-            instruccion_rect = instruccion_surf.get_rect(center=(self.ancho // 2, self.alto // 2 + 100))
-            self.pantalla.blit(instruccion_surf, instruccion_rect)
-
-            # 🔄 Botón de confirmación (solo visible cuando está en la última posición)
-            if self.posicion_actual == 3:
-                self.dibujar_boton_confirmacion(self.ancho // 2, self.alto // 2 + 160)
-                confirmacion_texto = "Presiona → para confirmar" if self.idioma == "es" else "Press → to confirm"
-                confirmacion_surf = self.fuente_info.render(confirmacion_texto, True, (255, 215, 100))
-                confirmacion_rect = confirmacion_surf.get_rect(center=(self.ancho // 2, self.alto // 2 + 220))
-                self.pantalla.blit(confirmacion_surf, confirmacion_rect)
+            # ------------------------------------
+            # ⬇️ DIBUJAR INSTRUCCIONES (MODIFICADO) ⬇️
+            # ------------------------------------
+            color_inst = (255, 230, 150) # Amarillo brillante
+            self.dibujar_texto_simple(self.txt["instruccion1"], 
+                                      self.fuente_instruccion, 
+                                      color_inst, 
+                                      self.ancho // 2, 
+                                      pos_y_letras + 120) # Debajo de las letras
+            self.dibujar_texto_simple(self.txt["instruccion2"], 
+                                      self.fuente_instruccion, 
+                                      color_inst, 
+                                      self.ancho // 2, 
+                                      pos_y_letras + 160)
+            self.dibujar_texto_simple(self.txt["instruccion3"], 
+                                      self.fuente_instruccion, 
+                                      color_inst, 
+                                      self.ancho // 2, 
+                                      pos_y_letras + 200)
+            # ------------------------------------
+            # ⬆️ FIN INSTRUCCIONES ⬆️
+            # ------------------------------------
 
            
             # 🎧 Efectos visuales suaves

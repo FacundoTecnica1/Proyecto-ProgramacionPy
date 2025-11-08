@@ -12,19 +12,25 @@ class SeleccionMundo:
         self.arduino_serial = arduino_serial # <-- MODIFICADO
         self.idioma = idioma
 
-        # --- Textos Multi-idioma ---
+        # --- Textos Multi-idioma (MODIFICADO) ---
         self.textos = {
             "es": {
                 "titulo": "SELECCIONAR MUNDO",
-                "noche": "MUNDO NOCHE",
-                "dia": "MUNDO DÍA",
-                "volver": "Volver"
+                "noche": "NOCHE", # MODIFICADO
+                "dia": "DÍA",   # MODIFICADO
+                "volver": "Volver",
+                # MODIFICADO: Separado en dos claves
+                "instruccion_cambiar": "Use 'Flecha Izquierda' para cambiar.", 
+                "instruccion_seleccionar": "Use 'Flecha Derecha' para seleccionar."
             },
             "en": {
                 "titulo": "SELECT WORLD",
-                "noche": "NIGHT WORLD",
-                "dia": "DAY WORLD",
-                "volver": "Back"
+                "noche": "NIGHT", # MODIFICADO
+                "dia": "DAY",   # MODIFICADO
+                "volver": "Back",
+                # MODIFICADO: Separado en dos claves
+                "instruccion_cambiar": "Use 'Left Arrow' to change.",
+                "instruccion_seleccionar": "Use 'Right Arrow' to select."
             }
         }
         self.actualizar_textos() # Asegurar que los textos se carguen correctamente
@@ -32,6 +38,8 @@ class SeleccionMundo:
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_opciones = pygame.font.Font(None, 60)
         self.fuente_boton = pygame.font.Font(None, 55)
+        # MODIFICADO: Fuente para instrucciones más grande
+        self.fuente_instruccion = pygame.font.Font(None, 35) 
         self.clock = pygame.time.Clock()
 
         self.ruta_img = os.path.join(os.path.dirname(__file__), "..", "img")
@@ -62,7 +70,13 @@ class SeleccionMundo:
         self.txt = self.textos[self.idioma]
 
     # ------------------------------------------------------------
-    def dibujar_texto(self, texto, fuente, color, x, y, centrado=True):
+    def dibujar_texto(self, texto, fuente, color, x, y, centrado=True, sombra_color=(0,0,0)):
+        # Sombra
+        sombra_surf = fuente.render(texto, True, sombra_color)
+        sombra_rect = sombra_surf.get_rect(center=(x + 2, y + 2)) if centrado else sombra_surf.get_rect(topleft=(x + 2, y + 2))
+        self.ventana.blit(sombra_surf, sombra_rect)
+        
+        # Texto
         superficie = fuente.render(texto, True, color)
         rect = superficie.get_rect(center=(x, y)) if centrado else superficie.get_rect(topleft=(x, y))
         self.ventana.blit(superficie, rect)
@@ -125,9 +139,32 @@ class SeleccionMundo:
             self.ventana.blit(self.luna, (boton_noche.centerx - 50, boton_noche.top + 20))
             self.ventana.blit(self.sol, (boton_dia.centerx - 60, boton_dia.top + 10))
 
-            # Textos de mundos
+            # Textos de mundos (MODIFICADO: Usan texto corto)
             self.dibujar_texto(self.txt["noche"], self.fuente_opciones, self.color_noche, boton_noche.centerx, boton_noche.bottom - 30)
             self.dibujar_texto(self.txt["dia"], self.fuente_opciones, self.color_dia, boton_dia.centerx, boton_dia.bottom - 30)
+
+            # ------------------------------------
+            # ⬇️ DIBUJAR INSTRUCCIONES (MODIFICADO) ⬇️
+            # ------------------------------------
+            # MODIFICADO: Se dibujan dos líneas de texto separadas
+            y_instruccion_1 = boton_dia.bottom + 50
+            y_instruccion_2 = y_instruccion_1 + 40 # Espacio vertical para la segunda línea
+
+            self.dibujar_texto(self.txt["instruccion_cambiar"], 
+                               self.fuente_instruccion, 
+                               (255, 230, 150), # Amarillo brillante
+                               self.ancho // 2, 
+                               y_instruccion_1)
+            
+            self.dibujar_texto(self.txt["instruccion_seleccionar"], 
+                               self.fuente_instruccion, 
+                               (255, 230, 150), # Amarillo brillante
+                               self.ancho // 2, 
+                               y_instruccion_2)
+            # ------------------------------------
+            # ⬆️ FIN INSTRUCCIONES ⬆️
+            # ------------------------------------
+
 
             # Botón Volver
             boton_volver = self.dibujar_boton(self.txt["volver"], self.ancho // 2, self.alto - 100, 250, 70, seleccionado=self.en_boton_volver)
