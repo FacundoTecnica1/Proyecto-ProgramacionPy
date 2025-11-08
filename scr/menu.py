@@ -136,7 +136,10 @@ class Menu:
         if self.muted:
             start_pos = (self.rect_icono_musica.left + 10, self.rect_icono_musica.bottom - 10)
             end_pos = (self.rect_icono_musica.right - 10, self.rect_icono_musica.top + 10)
-            pygame.draw.line(self.pantalla, (255, 0, 0), start_pos, end_pos, 3)
+            # Dibujar primero una línea negra más gruesa para cubrir cualquier trazo rojo del icono,
+            # luego dibujar la línea amarilla encima para que se vea claramente amarilla.
+            pygame.draw.line(self.pantalla, (0, 0, 0), start_pos, end_pos, 7)
+            pygame.draw.line(self.pantalla, (255, 215, 100), start_pos, end_pos, 5)
 
     # ------------------------------------------------------------
     def mostrar(self):

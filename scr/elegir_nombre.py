@@ -14,6 +14,11 @@ class ElegirNombre:
         self.arduino_serial = arduino_serial # <-- MODIFICADO
         self.idioma = idioma # <-- MODIFICADO
 
+        # Variables para el mensaje de error
+        self.mostrar_error = False
+        self.tiempo_error = 0
+        self.duracion_error = 2000  # 2 segundos
+
         # 🎨 Estilo visual
         self.color_texto = (255, 255, 255)
         self.color_resaltado = (255, 215, 100)
@@ -31,13 +36,15 @@ class ElegirNombre:
                 "titulo": "ELIGE TU NOMBRE",
                 "instruccion1": "Use 'Flecha Arriba'/'Flecha Abajo' para cambiar la letra.",
                 "instruccion2": "Use 'Flecha Izquierda'/'Flecha Derecha' para mover la casilla.",
-                "instruccion3": "Confirme con 'Flecha Derecha' en la última casilla."
+                "instruccion3": "Confirme con 'Flecha Derecha' en la última casilla.",
+                "error_nombre": "¡Nombre ya en uso! Elige otro nombre."
             },
             "en": {
                 "titulo": "CHOOSE YOUR NAME",
                 "instruccion1": "Use 'Up Arrow'/'Down Arrow' to change letter.",
                 "instruccion2": "Use 'Left Arrow'/'Right Arrow' to move slot.",
-                "instruccion3": "Confirm with 'Right Arrow' on the last slot."
+                "instruccion3": "Confirm with 'Right Arrow' on the last slot.",
+                "error_nombre": "Name already taken! Choose another name."
             }
         }
         self.txt = self.textos[self.idioma]
@@ -126,7 +133,20 @@ class ElegirNombre:
         except Exception as e:
             print(f"[ERROR DB] {e}")
             return None
-            
+    def nombre_existe(self, nombre):
+        """Verifica si un nombre ya existe en la base de datos"""
+        try:
+            conexion = mysql.connector.connect(**self.db_config)
+            cursor = conexion.cursor()
+            # Comparar en mayúsculas para evitar diferencias de case
+            cursor.execute("SELECT COUNT(*) FROM usuario WHERE UPPER(Nombre) = %s", (nombre.upper(),))
+            count = cursor.fetchone()[0]
+            conexion.close()
+            return count > 0
+        except Exception as e:
+            print(f"Error al verificar nombre: {e}")
+            return False
+
     # ============================
     # 🎨 FONDO ANIMADO
     # ============================
@@ -298,12 +318,33 @@ class ElegirNombre:
                     elif event.key == pygame.K_RIGHT:
                         if self.posicion_actual == 3:  # 👉 Confirmar nombre
                             nombre = "".join([self.letras[i] for i in self.indice])
-                            id_usuario = self.guardar_nombre(nombre)
-                            return nombre, id_usuario
+                            # Verificar duplicado (mayúsculas)
+                            if self.nombre_existe(nombre):
+                                self.mostrar_error = True
+                                self.tiempo_error = pygame.time.get_ticks()
+                            else:
+                                id_usuario = self.guardar_nombre(nombre)
+                                return nombre, id_usuario
                         else:
                             self.posicion_actual = (self.posicion_actual + 1) % 4
                     elif event.key == pygame.K_LEFT:
                         self.posicion_actual = (self.posicion_actual - 1) % 4
+            # Mostrar mensaje de error si es necesario
+            if self.mostrar_error:
+                tiempo_actual = pygame.time.get_ticks()
+                if tiempo_actual - self.tiempo_error > self.duracion_error:
+                    self.mostrar_error = False
+                else:
+                    # Superficie del mensaje (fondo amarillo, texto oscuro)
+                    mensaje_surf = pygame.Surface((600, 70), pygame.SRCALPHA)
+                    pygame.draw.rect(mensaje_surf, (255, 215, 100, 220), mensaje_surf.get_rect(), border_radius=12)
+                    texto_error = self.fuente_info.render(self.txt.get("error_nombre", "Nombre en uso"), True, (30,30,30))
+                    texto_rect = texto_error.get_rect(center=(mensaje_surf.get_width()//2, mensaje_surf.get_height()//2))
+                    mensaje_surf.blit(texto_error, texto_rect)
+                    # Posicionar el mensaje más abajo en la pantalla
+                    pos_y_mensaje = self.alto - 100
+                    rect_mensaje = mensaje_surf.get_rect(center=(self.ancho//2, pos_y_mensaje))
+                    self.pantalla.blit(mensaje_surf, rect_mensaje)
 
             pygame.display.flip()
             clock.tick(60)
