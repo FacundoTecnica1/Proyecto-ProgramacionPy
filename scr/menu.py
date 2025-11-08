@@ -2,7 +2,6 @@ import pygame
 import sys
 import os
 import serial # <-- MODIFICADO: Importado
-from seleccionar_sonido import SelectorSonido
 from mostrar_ranking import MostrarRanking
 
 class Menu:
@@ -48,6 +47,8 @@ class Menu:
         self.fuente_idioma = pygame.font.Font(None, 35)
 
         self.volumen_sfx = 0.5
+        self.muted = False
+        self.volumen_anterior = self.volumen_sfx
 
         # Fondo
         ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo.png")
@@ -130,6 +131,12 @@ class Menu:
         if seleccionado:
             pygame.draw.rect(self.pantalla, self.color_hover, self.rect_icono_musica.inflate(8, 8), 3, border_radius=10)
         self.pantalla.blit(self.icono_musica, self.rect_icono_musica.topleft)
+        
+        # Dibujar línea de mute si el sonido está muteado
+        if self.muted:
+            start_pos = (self.rect_icono_musica.left + 10, self.rect_icono_musica.bottom - 10)
+            end_pos = (self.rect_icono_musica.right - 10, self.rect_icono_musica.top + 10)
+            pygame.draw.line(self.pantalla, (255, 0, 0), start_pos, end_pos, 3)
 
     # ------------------------------------------------------------
     def mostrar(self):
@@ -247,15 +254,19 @@ class Menu:
                          #    No hacer nada (no salir del juego)
 
 
-                    elif event.key == pygame.K_RIGHT: # D3
+                    elif event.key == pygame.K_RIGHT or event.key == pygame.K_RETURN: # D3 o Enter
                         if self.opcion_seleccionada == 0:
-                            # Barra de configuración
                             if self.seleccion_horizontal == 0:
                                 self.seleccion_horizontal = 1 # Mover a Música
                             elif self.seleccion_horizontal == 1:
-                                # MODIFICADO: Pasa el arduino_serial y el idioma
-                                selector = SelectorSonido(self.pantalla, self.ancho, self.alto, self.volumen_sfx, self.arduino_serial, self.idioma)
-                                self.volumen_sfx = selector.mostrar()
+                                # Toggle mute/unmute
+                                if self.muted:
+                                    self.muted = False
+                                    self.volumen_sfx = self.volumen_anterior
+                                else:
+                                    self.muted = True
+                                    self.volumen_anterior = self.volumen_sfx
+                                    self.volumen_sfx = 0
                         else:
                             # Confirmar botón principal con DERECHA (D3)
                             # MODIFICADO: usa self.opciones que ya está traducido
