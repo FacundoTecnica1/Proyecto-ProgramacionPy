@@ -20,13 +20,13 @@ class Menu:
                 "titulo": "Dino",
                 "record": "Record",
                 "jugador": "Jugador",
-                "opciones": ["Jugar", "Elegir Mundo", "Elegir Personaje", "Ver Rankings", "Salir"]
+                "opciones": ["1. Jugar", "2. Elegir Mundo", "3. Elegir Personaje", "4. Ver Rankings", "5. Salir"]
             },
             "en": {
                 "titulo": "Dino Game",
                 "record": "High Score",
                 "jugador": "Player",
-                "opciones": ["Play", "Choose World", "Choose Character", "View Rankings", "Exit"]
+                "opciones": ["1. Play", "2. Choose World", "3. Choose Character", "4. View Rankings", "5. Exit"]
             }
         }
         self.actualizar_textos() # <-- MODIFICADO
@@ -272,23 +272,23 @@ class Menu:
                                     self.volumen_sfx = 0
                         else:
                             # Confirmar botón principal con DERECHA (D3)
-                            # MODIFICADO: usa self.opciones que ya está traducido
+                            # MODIFICADO: Quitamos los números del inicio para la comparación
                             seleccion = self.opciones[self.opcion_seleccionada - 1]
                             
-                            # Compara con las claves en inglés (que no cambian)
-                            clave_en = self.textos["en"]["opciones"][self.opcion_seleccionada - 1]
-
-                            if clave_en == "Play":
+                            # Quita el número y el punto del inicio (ej: "1. Play" -> "Play")
+                            opcion_limpia = seleccion[3:]  # Saltamos "X. "
+                            
+                            if opcion_limpia.startswith(("Jugar", "Play")):
                                 return "jugar"
-                            elif clave_en == "Choose World":
+                            elif opcion_limpia.startswith(("Elegir Mundo", "Choose World")):
                                 return "mundo"
-                            elif clave_en == "Choose Character":
+                            elif opcion_limpia.startswith(("Elegir Personaje", "Choose Character")):
                                 return "personaje"
-                            elif clave_en == "View Rankings":
+                            elif opcion_limpia.startswith(("Ver Rankings", "View Rankings")):
                                 # MODIFICADO: Pasa el arduino_serial y el idioma
                                 pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto, self.arduino_serial, self.idioma)
                                 pantalla_ranking.mostrar()
-                            elif clave_en == "Exit":
+                            elif opcion_limpia.startswith(("Salir", "Exit")):
                                 return "salir" # Devuelve "salir" para que main.py lo maneje
 
             pygame.display.flip()
