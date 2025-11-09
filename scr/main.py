@@ -481,12 +481,12 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
         
         dibujar_texto_simple(pantalla, "Use 'Flecha Izquierda' / 'Flecha Derecha' para cambiar.", 
                            fuente_idioma_instruccion, color_instruccion, ancho // 2, alto // 2 + 140)
-        dibujar_texto_simple(pantalla, "Confirme con 'Enter'", 
+        dibujar_texto_simple(pantalla, "Confirme con 'Flecha Derecha'", 
                            fuente_idioma_instruccion, color_principal, ancho // 2, alto // 2 + 180)
         
         dibujar_texto_simple(pantalla, "Use 'Left Arrow' / 'Right Arrow' to toggle.", 
                            fuente_idioma_instruccion, color_instruccion, ancho // 2, alto // 2 + 240)
-        dibujar_texto_simple(pantalla, "Confirm with 'Enter'", 
+        dibujar_texto_simple(pantalla, "Confirm with 'Right Arrow'", 
                            fuente_idioma_instruccion, color_principal, ancho // 2, alto // 2 + 280)
 
 
@@ -520,11 +520,11 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:  # Flecha izquierda
+                if event.key == pygame.K_LEFT:  # Flecha izquierda - cambiar idioma
                     idioma_sel = "en" if idioma_sel == "es" else "es" # Alternar
-                elif event.key == pygame.K_RIGHT:  # Flecha derecha
-                    idioma_sel = "en" if idioma_sel == "es" else "es" # Alternar también
-                elif event.key == pygame.K_RETURN:  # Confirmar con Enter
+                elif event.key == pygame.K_RIGHT:  # Flecha derecha - confirmar selección
+                    return idioma_sel  # Confirmar y salir
+                elif event.key == pygame.K_RETURN:  # Enter también confirma (backup)
                     return idioma_sel
 
 
