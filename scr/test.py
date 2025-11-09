@@ -24,7 +24,7 @@ def probar_conexion_serial():
                 
                 # Buscamos la señal 'S'
                 if 'S' in data_str:
-                    print(f"🤖 Señal de salto recibida: {data_str}")
+                    print(f"Señal de salto recibida: {data_str}")
             
             time.sleep(0.01) # Pequeña pausa para no saturar el CPU
 

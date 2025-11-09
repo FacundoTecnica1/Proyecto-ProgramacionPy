@@ -4,6 +4,7 @@ import os
 import math
 import mysql.connector
 import serial # <-- MODIFICADO: Importado
+import random  # Para los efectos de brillitos
 
 class ElegirNombre:
     # MODIFICADO: Añadido arduino_serial=None e idioma="es"
@@ -19,16 +20,43 @@ class ElegirNombre:
         self.tiempo_error = 0
         self.duracion_error = 2000  # 2 segundos
 
-        # 🎨 Estilo visual
+        # Estilo visual vibrante
         self.color_texto = (255, 255, 255)
-        self.color_resaltado = (255, 215, 100)
+        self.color_resaltado = (255, 100, 50)      # Naranja vibrante
         self.color_fondo = (25, 25, 35)
+        self.color_titulo = (255, 255, 100)          # Amarillo estándar
+        self.color_letra_activa = (100, 255, 255)  # Cyan vibrante
+        self.color_letra_normal = (200, 200, 255)  # Azul claro
+        self.color_casilla_activa = (255, 100, 100) # Rojo vibrante
+        self.color_casilla_normal = (50, 80, 120)  # Azul oscuro
+        self.color_instrucciones = (255, 200, 150) # Naranja suave
         self.fuente_titulo = pygame.font.Font(None, 100)
         self.fuente_letra = pygame.font.Font(None, 120)
         self.fuente_info = pygame.font.Font(None, 40)
         # MODIFICADO: Fuente para instrucciones más grande
         self.fuente_instruccion = pygame.font.Font(None, 35) 
         self.anim_tiempo = 0
+
+        # Efectos de brillitos
+        self.brillitos = []
+        for _ in range(50):
+            self.brillitos.append({
+                'x': random.randint(0, ancho),
+                'y': random.randint(0, alto),
+                'vx': random.uniform(-1, 1),
+                'vy': random.uniform(-1, 1),
+                'color': random.choice([
+                    (255, 255, 100),  # Amarillo brillante
+                    (100, 255, 255),  # Cyan brillante
+                    (255, 100, 255),  # Magenta brillante
+                    (100, 255, 100),  # Verde brillante
+                    (255, 255, 100),  # Amarillo estándar
+                    (200, 100, 255),  # Púrpura brillante
+                ]),
+                'size': random.randint(1, 3),
+                'vida': random.randint(100, 300),
+                'vida_max': random.randint(100, 300)
+            })
 
         # --- Textos Multi-idioma (MODIFICADO) ---
         self.textos = {
@@ -49,7 +77,7 @@ class ElegirNombre:
         }
         self.txt = self.textos[self.idioma]
 
-        # 🖼️ Fondo opcional
+        # Fondo opcional
         ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo.png")
         if os.path.exists(ruta_fondo):
             self.fondo_img = pygame.image.load(ruta_fondo).convert()
@@ -57,12 +85,12 @@ class ElegirNombre:
         else:
             self.fondo_img = None
 
-        # 🔤 Letras y estado
+        # Letras y estado
         self.letras = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
         self.indice = [0, 0, 0, 0]
         self.posicion_actual = 0
 
-        # ⚙️ Base de datos
+        # Base de datos
         self.db_config = {
             "host": "localhost",
             "user": "root",
@@ -82,7 +110,7 @@ class ElegirNombre:
         self.id_usuario_actual = None
 
     # ============================
-    # 📦 BASE DE DATOS
+    # BASE DE DATOS
     # ============================
     def crear_tablas(self):
         try:
@@ -148,7 +176,7 @@ class ElegirNombre:
             return False
 
     # ============================
-    # 🎨 FONDO ANIMADO
+    # FONDO ANIMADO
     # ============================
     def gradiente_fondo(self):
         """Fondo animado tipo aurora, sin errores de color"""
@@ -166,7 +194,7 @@ class ElegirNombre:
             pygame.draw.line(self.pantalla, (r, g, b), (0, y), (self.ancho, y))
 
     # ============================
-    # 🔠 INTERFAZ
+    # INTERFAZ
     # ============================
     def cargar_nombre_guardado(self, nombre):
         nombre = nombre.upper()[:4]
@@ -175,6 +203,46 @@ class ElegirNombre:
                 self.indice[i] = self.letras.index(letra)
 
     # MODIFICADO: Añadido dibujar texto simple (con sombra)
+    def actualizar_brillitos(self):
+        """Actualiza y dibuja los efectos de brillitos"""
+        for brillito in self.brillitos:
+            # Actualizar posición
+            brillito['x'] += brillito['vx']
+            brillito['y'] += brillito['vy']
+            
+            # Rebotar en los bordes
+            if brillito['x'] <= 0 or brillito['x'] >= self.ancho:
+                brillito['vx'] *= -1
+            if brillito['y'] <= 0 or brillito['y'] >= self.alto:
+                brillito['vy'] *= -1
+            
+            # Actualizar vida
+            brillito['vida'] -= 1
+            if brillito['vida'] <= 0:
+                # Reiniciar brillito
+                brillito['x'] = random.randint(0, self.ancho)
+                brillito['y'] = random.randint(0, self.alto)
+                brillito['vida'] = brillito['vida_max']
+            
+            # Calcular alpha basado en la vida
+            alpha = int(255 * (brillito['vida'] / brillito['vida_max']))
+            
+            # Crear superficie con alpha para el brillito
+            tamano = brillito['size'] * 4
+            surf = pygame.Surface((tamano, tamano), pygame.SRCALPHA)
+            
+            # Dibujar círculo principal
+            pygame.draw.circle(surf, brillito['color'], (tamano//2, tamano//2), brillito['size'])
+            
+            # Efecto de brillo adicional (círculo más pequeño y brillante)
+            color_brillo = tuple(min(255, c + 50) for c in brillito['color'])
+            pygame.draw.circle(surf, color_brillo, (tamano//2, tamano//2), max(1, brillito['size']//2))
+            
+            # Aplicar alpha a toda la superficie
+            surf.set_alpha(alpha)
+            
+            self.pantalla.blit(surf, (int(brillito['x']) - tamano//2, int(brillito['y']) - tamano//2))
+
     def dibujar_texto_simple(self, texto, fuente, color, x, y, centrado=True, sombra_color=(0,0,0)):
         # Sombra
         sombra_surf = fuente.render(texto, True, sombra_color)
@@ -186,60 +254,94 @@ class ElegirNombre:
         rect = surf.get_rect(center=(x, y)) if centrado else surf.get_rect(topleft=(x, y))
         self.pantalla.blit(surf, rect)
 
+    def dibujar_fondo_colorido(self):
+        """Dibuja un fondo colorido con estrellas como los otros menús"""
+        # Fondo degradado estático
+        if self.fondo_img:
+            self.pantalla.blit(self.fondo_img, (0, 0))
+        else:
+            self.gradiente_fondo()
+        
+        # Añadir estrellas coloridas estáticas
+        estrellas_positions = [
+            (80, 120), (320, 60), (520, 180), (720, 100),
+            (120, 380), (480, 320), (680, 420), (180, 280),
+            (580, 480), (380, 160), (780, 280), (30, 230),
+            (650, 150), (250, 400), (750, 350), (150, 50)
+        ]
+        
+        colores_estrellas = [
+            (255, 255, 100), (100, 255, 255), (255, 100, 255),
+            (100, 255, 100), (255, 255, 100), (200, 100, 255)
+        ]
+        
+        for i, pos in enumerate(estrellas_positions):
+            if pos[0] < self.ancho and pos[1] < self.alto:
+                color = colores_estrellas[i % len(colores_estrellas)]
+                # Dibujar estrella como un círculo con rayos
+                pygame.draw.circle(self.pantalla, color, pos, 3)
+                # Rayos de la estrella
+                pygame.draw.line(self.pantalla, color, (pos[0]-6, pos[1]), (pos[0]+6, pos[1]), 1)
+                pygame.draw.line(self.pantalla, color, (pos[0], pos[1]-6), (pos[0], pos[1]+6), 1)
+
     def mostrar(self):
         clock = pygame.time.Clock()
 
         while True:
-            # Fondo animado o imagen
-            if self.fondo_img:
-                self.pantalla.blit(self.fondo_img, (0, 0))
-            else:
-                self.gradiente_fondo()
+            # Fondo colorido con estrellas
+            self.dibujar_fondo_colorido()
+            
+            # Actualizar y dibujar brillitos
+            self.actualizar_brillitos()
 
-            # 🔰 Título
-            # MODIFICADO: Usar self.txt
+            # Título colorido
+            # MODIFICADO: Usar self.txt y color dorado
             titulo_texto = self.txt["titulo"]
-            sombra = self.fuente_titulo.render(titulo_texto, True, (0, 0, 0))
-            texto = self.fuente_titulo.render(titulo_texto, True, self.color_texto)
+            sombra = self.fuente_titulo.render(titulo_texto, True, (100, 50, 0))  # Sombra dorada oscura
+            texto = self.fuente_titulo.render(titulo_texto, True, self.color_titulo)  # Dorado
             rect = texto.get_rect(center=(self.ancho // 2, 120))
             self.pantalla.blit(sombra, (rect.x + 3, rect.y + 3))
             self.pantalla.blit(texto, rect)
 
-            # 🔤 Letras
+            # Letras coloridas
             inicio_x = self.ancho // 2 - 1.5 * 140
             pos_y_letras = self.alto // 2
             for i in range(4):
                 letra = self.letras[self.indice[i]]
-                color = self.color_resaltado if i == self.posicion_actual else self.color_texto
-                surf = self.fuente_letra.render(letra, True, color)
+                
+                # Colores vibrantes según si está activa o no
+                if i == self.posicion_actual:
+                    color_letra = self.color_letra_activa    # Cyan vibrante
+                    color_caja = self.color_casilla_activa   # Rojo vibrante
+                else:
+                    color_letra = self.color_letra_normal    # Azul claro
+                    color_caja = self.color_casilla_normal   # Azul oscuro
+                
+                surf = self.fuente_letra.render(letra, True, color_letra)
                 rect = surf.get_rect(center=(inicio_x + i * 140, pos_y_letras))
 
-                # Cuadro con borde y fondo translúcido
+                # Cuadro colorido sin sombra
                 caja_rect = rect.inflate(50, 50)
-                sombra_surf = pygame.Surface(caja_rect.size, pygame.SRCALPHA)
-                pygame.draw.rect(sombra_surf, (0, 0, 0, 100), sombra_surf.get_rect(), border_radius=15)
-                self.pantalla.blit(sombra_surf, caja_rect.topleft)
-                
-                pygame.draw.rect(self.pantalla, color, caja_rect, 3, border_radius=15)
+                pygame.draw.rect(self.pantalla, color_caja, caja_rect, border_radius=15)
+                pygame.draw.rect(self.pantalla, color_letra, caja_rect, 3, border_radius=15)
                 self.pantalla.blit(surf, rect)
 
             # ------------------------------------
-            # ⬇️ DIBUJAR INSTRUCCIONES (MODIFICADO) ⬇️
+            # ⬇️ DIBUJAR INSTRUCCIONES COLORIDAS (MODIFICADO) ⬇️
             # ------------------------------------
-            color_inst = (255, 230, 150) # Amarillo brillante
             self.dibujar_texto_simple(self.txt["instruccion1"], 
                                       self.fuente_instruccion, 
-                                      color_inst, 
+                                      self.color_instrucciones, 
                                       self.ancho // 2, 
-                                      pos_y_letras + 120) # Debajo de las letras
+                                      pos_y_letras + 120)
             self.dibujar_texto_simple(self.txt["instruccion2"], 
                                       self.fuente_instruccion, 
-                                      color_inst, 
+                                      self.color_instrucciones, 
                                       self.ancho // 2, 
                                       pos_y_letras + 160)
             self.dibujar_texto_simple(self.txt["instruccion3"], 
                                       self.fuente_instruccion, 
-                                      color_inst, 
+                                      self.color_instrucciones, 
                                       self.ancho // 2, 
                                       pos_y_letras + 200)
             # ------------------------------------
@@ -247,7 +349,7 @@ class ElegirNombre:
             # ------------------------------------
 
            
-            # 🎧 Efectos visuales suaves
+            # Efectos visuales suaves
             overlay = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
             overlay.fill((10, 10, 30, 30))
             self.pantalla.blit(overlay, (0, 0))
@@ -302,7 +404,7 @@ class ElegirNombre:
             # ⬆️ FIN BLOQUE DE LECTURA SERIAL ⬆️
             # ----------------------------------------------------
 
-            # 🎮 Controles
+            # Controles
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     if self.arduino_serial and self.arduino_serial.is_open:
@@ -316,7 +418,7 @@ class ElegirNombre:
                     elif event.key == pygame.K_DOWN:
                         self.indice[self.posicion_actual] = (self.indice[self.posicion_actual] - 1) % len(self.letras)
                     elif event.key == pygame.K_RIGHT:
-                        if self.posicion_actual == 3:  # 👉 Confirmar nombre
+                        if self.posicion_actual == 3:  # Confirmar nombre
                             nombre = "".join([self.letras[i] for i in self.indice])
                             # Verificar duplicado (mayúsculas)
                             if self.nombre_existe(nombre):

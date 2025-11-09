@@ -127,11 +127,15 @@ class Menu:
         self.opcion_seleccionada = 1  # 0 = config superior, 1 = Jugar, ...
         self.seleccion_horizontal = 0  # 0 = idioma, 1 = música
 
-        # Colores y fuentes
+        # Colores y fuentes vibrantes
         self.color_texto = (255, 255, 255)
-        self.color_hover = (255, 230, 150)
+        self.color_hover = (255, 100, 50)  # Naranja vibrante
         self.color_sombra = (0, 0, 0, 120)
-        self.color_boton = (50, 50, 50)
+        self.color_boton = (30, 80, 150)  # Azul vibrante
+        self.color_titulo = (255, 255, 100)  # Amarillo estándar
+        self.color_record = (255, 50, 50)  # Rojo brillante
+        self.color_fondo_top = (25, 50, 100)  # Azul oscuro
+        self.color_fondo_bottom = (100, 25, 75)  # Morado oscuro
         self.radio_boton = 20
         self.fuente_titulo = pygame.font.Font(None, 90)
         self.fuente_opcion = pygame.font.Font(None, 55)
@@ -150,8 +154,8 @@ class Menu:
         self.seleccion_horizontal_anterior = self.seleccion_horizontal
         self.alpha_transicion = 255  # opacidad de la transición
 
-        # Fondo
-        ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo.png")
+        # Fondo - cambiar a fondo de día (fondo2.png)
+        ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo2.png")
         self.fondo_img = pygame.image.load(ruta_fondo).convert()
         self.fondo_img = pygame.transform.scale(self.fondo_img, (self.ancho, self.alto))
 
@@ -169,6 +173,27 @@ class Menu:
         self.rect_boton_idioma = pygame.Rect(self.ancho - 250, 25, 150, 50)
 
         self.botones_rects = []
+        
+        # Brillitos del menú
+        self.brillitos_menu = []
+        for _ in range(40):
+            self.brillitos_menu.append({
+                'x': random.randint(0, ancho),
+                'y': random.randint(0, alto),
+                'vx': random.uniform(-0.8, 0.8),
+                'vy': random.uniform(-0.8, 0.8),
+                'color': random.choice([
+                    (255, 255, 100),  # Amarillo brillante
+                    (100, 255, 255),  # Cyan brillante
+                    (255, 100, 255),  # Magenta brillante
+                    (100, 255, 100),  # Verde brillante
+                    (255, 255, 100),  # Amarillo estándar
+                    (200, 100, 255),  # Púrpura brillante
+                ]),
+                'size': random.randint(1, 4),
+                'vida': random.randint(100, 300),
+                'vida_max': random.randint(100, 300)
+            })
         self.nombre_actual = None
         self.id_usuario_actual = None
 
@@ -192,51 +217,49 @@ class Menu:
         pygame.draw.rect(sombra_surf, self.color_sombra, sombra_surf.get_rect(), border_radius=self.radio_boton)
         self.pantalla.blit(sombra_surf, sombra_rect.topleft)
 
-        # Color del botón con efectos especiales si está seleccionado
+        # Color del botón vibrante
         if seleccionado:
-            # Efecto de brillo pulsante
-            tiempo_actual = pygame.time.get_ticks()
-            brillo = abs(math.sin(tiempo_actual * 0.005)) * 50 + 50  # Pulso entre 50-100
-            color = (int(50 + brillo), int(50 + brillo), int(50 + brillo * 0.5))
-            
-            # Borde brillante
-            pygame.draw.rect(self.pantalla, self.color_hover, rect, 3, border_radius=self.radio_boton)
-            
-            # Efectos de partículas en las esquinas (solo algunas veces)
-            if random.random() < 0.3:  # 30% de probabilidad cada frame
-                for i in range(4):
-                    corner_x = rect.left if i < 2 else rect.right
-                    corner_y = rect.top if i % 2 == 0 else rect.bottom
-                    offset_x = random.randint(-8, 8)
-                    offset_y = random.randint(-8, 8)
-                    pygame.draw.circle(self.pantalla, (255, 255, 100), 
-                                     (corner_x + offset_x, corner_y + offset_y), 2)
+            color_boton = self.color_hover  # Naranja vibrante
+            color_borde = (255, 255, 100)  # Amarillo brillante
         else:
-            color = self.color_boton
+            color_boton = self.color_boton  # Azul vibrante
+            color_borde = (100, 200, 255)  # Azul claro
 
-        pygame.draw.rect(self.pantalla, color, rect, border_radius=self.radio_boton)
+        pygame.draw.rect(self.pantalla, color_boton, rect, border_radius=self.radio_boton)
+        pygame.draw.rect(self.pantalla, color_borde, rect, 3, border_radius=self.radio_boton)
 
-        texto_surf = self.fuente_opcion.render(texto, True, self.color_texto)
-        texto_rect = texto_surf.get_rect(center=rect.center)
-        self.pantalla.blit(texto_surf, texto_rect)
+        # Texto
+        superficie_texto = self.fuente_opcion.render(texto, True, self.color_texto)
+        rect_texto = superficie_texto.get_rect(center=rect.center)
+        self.pantalla.blit(superficie_texto, rect_texto)
 
         return rect
 
     # ------------------------------------------------------------
     def dibujar_boton_idioma(self, seleccionado=False):
-        color_borde = self.color_hover if seleccionado else (255, 255, 255)
-        pygame.draw.rect(self.pantalla, (0, 0, 0), self.rect_boton_idioma, border_radius=25)
-        pygame.draw.rect(self.pantalla, color_borde, self.rect_boton_idioma, 2, border_radius=25)
+        # Colores vibrantes para el botón de idioma
+        if seleccionado:
+            color_fondo = (75, 0, 130)  # Índigo
+            color_borde = (255, 20, 147)  # Rosa profundo
+            color_globo = (255, 255, 100)  # Amarillo estándar
+        else:
+            color_fondo = (25, 25, 50)  # Azul muy oscuro
+            color_borde = (100, 150, 255)  # Azul claro
+            color_globo = (150, 150, 255)  # Azul claro
 
-        # globo idioma
+        pygame.draw.rect(self.pantalla, color_fondo, self.rect_boton_idioma, border_radius=25)
+        pygame.draw.rect(self.pantalla, color_borde, self.rect_boton_idioma, 3, border_radius=25)
+
+        # globo idioma colorido
         centro_globo = (self.rect_boton_idioma.left + 20, self.rect_boton_idioma.centery)
-        pygame.draw.circle(self.pantalla, color_borde, centro_globo, 9, 2)
-        pygame.draw.line(self.pantalla, color_borde, (centro_globo[0] - 8, centro_globo[1]), (centro_globo[0] + 8, centro_globo[1]), 1)
-        pygame.draw.line(self.pantalla, color_borde, (centro_globo[0], centro_globo[1] - 8), (centro_globo[0], centro_globo[1] + 8), 1)
+        pygame.draw.circle(self.pantalla, color_globo, centro_globo, 9, 2)
+        pygame.draw.line(self.pantalla, color_globo, (centro_globo[0] - 8, centro_globo[1]), (centro_globo[0] + 8, centro_globo[1]), 2)
+        pygame.draw.line(self.pantalla, color_globo, (centro_globo[0], centro_globo[1] - 8), (centro_globo[0], centro_globo[1] + 8), 2)
 
         # CORREGIDO: Mostrar el idioma CONTRARIO (al que puedes cambiar)
         idioma_texto = "English" if self.idioma == "es" else "Español"
-        texto_surf = self.fuente_idioma.render(idioma_texto, True, color_borde)
+        texto_color = (255, 255, 255) if seleccionado else (200, 200, 255)
+        texto_surf = self.fuente_idioma.render(idioma_texto, True, texto_color)
         self.pantalla.blit(texto_surf, (centro_globo[0] + 25, self.rect_boton_idioma.centery - 12))
 
     # ------------------------------------------------------------
@@ -313,18 +336,100 @@ class Menu:
     def dibujar_icono_musica(self, seleccionado=False):
         if not self.icono_musica:
             return
+        
+        # Colores vibrantes para el icono de música
         if seleccionado:
-            pygame.draw.rect(self.pantalla, self.color_hover, self.rect_icono_musica.inflate(8, 8), 3, border_radius=10)
+            color_borde = (255, 100, 255)  # Magenta vibrante
+            pygame.draw.rect(self.pantalla, color_borde, self.rect_icono_musica.inflate(8, 8), 3, border_radius=10)
+        
         self.pantalla.blit(self.icono_musica, self.rect_icono_musica.topleft)
         
-        # Dibujar línea de mute si el sonido está muteado
+        # Dibujar línea de mute colorida si el sonido está muteado
         if self.muted:
             start_pos = (self.rect_icono_musica.left + 10, self.rect_icono_musica.bottom - 10)
             end_pos = (self.rect_icono_musica.right - 10, self.rect_icono_musica.top + 10)
-            # Dibujar primero una línea negra más gruesa para cubrir cualquier trazo rojo del icono,
-            # luego dibujar la línea amarilla encima para que se vea claramente amarilla.
+            # Línea de fondo negra
             pygame.draw.line(self.pantalla, (0, 0, 0), start_pos, end_pos, 7)
-            pygame.draw.line(self.pantalla, (255, 215, 100), start_pos, end_pos, 5)
+            # Línea roja vibrante encima
+            pygame.draw.line(self.pantalla, (255, 50, 50), start_pos, end_pos, 5)
+
+    def dibujar_fondo_colorido(self):
+        """Dibuja un fondo degradado colorido estático"""
+        # Degradado vertical vibrante
+        for y in range(self.alto):
+            # Interpolación entre color superior e inferior
+            factor = y / self.alto
+            r = int(self.color_fondo_top[0] * (1 - factor) + self.color_fondo_bottom[0] * factor)
+            g = int(self.color_fondo_top[1] * (1 - factor) + self.color_fondo_bottom[1] * factor)
+            b = int(self.color_fondo_top[2] * (1 - factor) + self.color_fondo_bottom[2] * factor)
+            
+            color = (r, g, b)
+            pygame.draw.line(self.pantalla, color, (0, y), (self.ancho, y))
+        
+        # Añadir estrellas coloridas estáticas
+        estrellas_positions = [
+            (80, 120), (320, 60), (520, 180), (720, 100),
+            (120, 380), (480, 320), (680, 420), (180, 280),
+            (580, 480), (380, 160), (780, 280), (30, 230),
+            (650, 150), (250, 400), (750, 350), (150, 50)
+        ]
+        
+        colores_estrellas = [
+            (255, 255, 100), (100, 255, 255), (255, 100, 255),
+            (100, 255, 100), (255, 255, 100), (200, 100, 255)
+        ]
+        
+        for i, pos in enumerate(estrellas_positions):
+            if pos[0] < self.ancho and pos[1] < self.alto:
+                color = colores_estrellas[i % len(colores_estrellas)]
+                # Dibujar estrella como un círculo con rayos
+                pygame.draw.circle(self.pantalla, color, pos, 3)
+                # Rayos de la estrella
+                pygame.draw.line(self.pantalla, color, (pos[0]-6, pos[1]), (pos[0]+6, pos[1]), 1)
+                pygame.draw.line(self.pantalla, color, (pos[0], pos[1]-6), (pos[0], pos[1]+6), 1)
+
+    def actualizar_brillitos(self):
+        """Actualiza los brillitos del menú"""
+        for brillito in self.brillitos_menu:
+            # Actualizar posición
+            brillito['x'] += brillito['vx']
+            brillito['y'] += brillito['vy']
+            
+            # Rebotar en los bordes
+            if brillito['x'] <= 0 or brillito['x'] >= self.ancho:
+                brillito['vx'] *= -1
+            if brillito['y'] <= 0 or brillito['y'] >= self.alto:
+                brillito['vy'] *= -1
+            
+            # Actualizar vida
+            brillito['vida'] -= 1
+            if brillito['vida'] <= 0:
+                # Reiniciar brillito
+                brillito['x'] = random.randint(0, self.ancho)
+                brillito['y'] = random.randint(0, self.alto)
+                brillito['vida'] = brillito['vida_max']
+
+    def dibujar_brillitos(self):
+        """Dibuja los brillitos del menú"""
+        for brillito in self.brillitos_menu:
+            # Calcular alpha basado en la vida
+            alpha = int(255 * (brillito['vida'] / brillito['vida_max']))
+            
+            # Crear superficie con alpha
+            tamano = brillito['size'] * 2
+            surf = pygame.Surface((tamano, tamano), pygame.SRCALPHA)
+            
+            # Dibujar círculo principal
+            pygame.draw.circle(surf, brillito['color'], (tamano//2, tamano//2), brillito['size'])
+            
+            # Efecto de brillo adicional
+            color_brillo = tuple(min(255, c + 50) for c in brillito['color'])
+            pygame.draw.circle(surf, color_brillo, (tamano//2, tamano//2), max(1, brillito['size']//2))
+            
+            # Aplicar alpha
+            surf.set_alpha(alpha)
+            
+            self.pantalla.blit(surf, (int(brillito['x']) - tamano//2, int(brillito['y']) - tamano//2))
 
     # ------------------------------------------------------------
     def mostrar(self):
@@ -335,14 +440,47 @@ class Menu:
             # --- VERIFICAR CONTINUIDAD DE MÚSICA ---
             self.verificar_musica_continua()
             
+            # Fondo de día como base
             self.pantalla.blit(self.fondo_img, (0, 0))
+            
+            # Actualizar y dibujar brillitos
+            self.actualizar_brillitos()
+            self.dibujar_brillitos()
+            
+            # Añadir solo las estrellas coloridas encima del fondo
+            estrellas_positions = [
+                (80, 120), (320, 60), (520, 180), (720, 100),
+                (120, 380), (480, 320), (680, 420), (180, 280),
+                (580, 480), (380, 160), (780, 280), (30, 230),
+                (650, 150), (250, 400), (750, 350), (150, 50)
+            ]
+            
+            colores_estrellas = [
+                (255, 255, 100), (100, 255, 255), (255, 100, 255),
+                (100, 255, 100), (255, 255, 100), (200, 100, 255)
+            ]
+            
+            for i, pos in enumerate(estrellas_positions):
+                if pos[0] < self.ancho and pos[1] < self.alto:
+                    color = colores_estrellas[i % len(colores_estrellas)]
+                    # Dibujar estrella como un círculo con rayos
+                    pygame.draw.circle(self.pantalla, color, pos, 3)
+                    # Rayos de la estrella
+                    pygame.draw.line(self.pantalla, color, (pos[0]-6, pos[1]), (pos[0]+6, pos[1]), 1)
+                    pygame.draw.line(self.pantalla, color, (pos[0], pos[1]-6), (pos[0], pos[1]+6), 1)
 
-            # --- Título (MODIFICADO) ---
-            titulo_surf = self.fuente_titulo.render(self.txt["titulo"], True, self.color_texto)
+            # --- Título colorido vibrante (MODIFICADO) ---
+            # Sombra dorada
+            titulo_sombra = self.fuente_titulo.render(self.txt["titulo"], True, (150, 100, 0))
+            titulo_sombra_rect = titulo_sombra.get_rect(center=(self.ancho // 2 + 3, 100 + 3))
+            self.pantalla.blit(titulo_sombra, titulo_sombra_rect)
+            
+            # Título principal dorado
+            titulo_surf = self.fuente_titulo.render(self.txt["titulo"], True, self.color_titulo)
             titulo_rect = titulo_surf.get_rect(center=(self.ancho // 2, 100))
             self.pantalla.blit(titulo_surf, titulo_rect)
 
-            # --- Info jugador (MODIFICADO) ---
+            # --- Info jugador colorida (MODIFICADO) ---
             texto_record = f"{self.txt['record']}: {self.record_actual}"
             
             if self.nombre_actual:
@@ -351,12 +489,12 @@ class Menu:
             else:
                 texto_completo = texto_record
 
-            texto_surf = self.fuente_record.render(texto_completo, True, (230, 230, 230))
+            texto_surf = self.fuente_record.render(texto_completo, True, self.color_record)
             texto_rect = texto_surf.get_rect(center=(self.ancho // 2, 165))
             self.pantalla.blit(texto_surf, texto_rect)
-            pygame.draw.line(self.pantalla, (180, 180, 180),
+            pygame.draw.line(self.pantalla, (255, 100, 100),  # Línea roja brillante
                              (texto_rect.left - 10, texto_rect.bottom + 5),
-                             (texto_rect.right + 10, texto_rect.bottom + 5), 2)
+                             (texto_rect.right + 10, texto_rect.bottom + 5), 3)
 
             # --- Dibujar configuración superior ---
             self.dibujar_boton_idioma(seleccionado=(self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0))
@@ -517,15 +655,15 @@ class Menu:
                                 for i in range(60):
                                     x = random.randint(0, self.ancho)
                                     y = random.randint(0, self.alto)
-                                    color_estrella = random.choice([(255, 215, 0), (255, 255, 100), (255, 200, 50)])
+                                    color_estrella = random.choice([(255, 255, 100), (255, 255, 100), (255, 255, 100)])
                                     pygame.draw.circle(superficie_ranking, color_estrella, (x, y), random.randint(1, 4))
                                 
                                 # Añadir texto épico para ranking
                                 fuente_ranking = pygame.font.Font(None, 60)
                                 if self.idioma == "es":
-                                    texto_ranking = fuente_ranking.render("SALÓN DE LA FAMA...", True, (255, 215, 0))
+                                    texto_ranking = fuente_ranking.render("SALÓN DE LA FAMA...", True, (255, 255, 100))
                                 else:
-                                    texto_ranking = fuente_ranking.render("HALL OF FAME...", True, (255, 215, 0))
+                                    texto_ranking = fuente_ranking.render("HALL OF FAME...", True, (255, 255, 100))
                                 texto_rect = texto_ranking.get_rect(center=(self.ancho//2, self.alto//2))
                                 superficie_ranking.blit(texto_ranking, texto_rect)
                                 

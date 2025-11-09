@@ -89,6 +89,11 @@ class Perro(pygame.sprite.Sprite):
         # Guardar gravedad original para ajustar caída en el aire
         self._original_gravedad = self.gravedad
 
+        # Brillitos del perro
+        self.brillitos_perro = []
+        self.tiempo_ultimo_brillito = 0
+        self.intervalo_brillito = 50  # Crear brillito cada 50ms
+
     # --- MODIFICADO: manejar_salto - SALTO DINÁMICO ---
     def manejar_salto(self, event):
         # Manejar presionar/soltar SPACE y UP para salto dinámico
@@ -237,6 +242,10 @@ class Perro(pygame.sprite.Sprite):
             self.image = self.imagen_aire if self.vel_y > 0 else self.imagen_salto
 
         self.mask = pygame.mask.from_surface(self.image)
+        
+        # Crear brillitos mientras el perro se mueve
+        self.crear_brillito()
+        self.actualizar_brillitos()
 
     # --- MODIFICADO: reiniciar (Se quitó el Dash) ---
     def reiniciar(self, alto, altura_suelo):
@@ -295,6 +304,69 @@ class Perro(pygame.sprite.Sprite):
             # Borde de la barra
             pygame.draw.rect(pantalla, (255, 255, 255), 
                            (barra_x, barra_y, barra_ancho, barra_alto), 1)
+        
+        # Dibujar brillitos del perro
+        self.dibujar_brillitos(pantalla)
+
+    def crear_brillito(self):
+        """Crea un nuevo brillito detrás del perro"""
+        tiempo_actual = pygame.time.get_ticks()
+        if tiempo_actual - self.tiempo_ultimo_brillito > self.intervalo_brillito:
+            brillito = {
+                'x': self.rect.centerx - 20 + random.randint(-10, 10),
+                'y': self.rect.centery + random.randint(-15, 15),
+                'vx': random.uniform(-2, -0.5),  # Movimiento hacia atrás
+                'vy': random.uniform(-1, 1),
+                'color': random.choice([
+                    (255, 255, 100),  # Amarillo brillante
+                    (100, 255, 255),  # Cyan brillante
+                    (255, 100, 255),  # Magenta brillante
+                    (100, 255, 100),  # Verde brillante
+                    (255, 255, 100),  # Amarillo estándar
+                    (200, 100, 255),  # Púrpura brillante
+                ]),
+                'size': random.randint(2, 5),
+                'vida': random.randint(60, 120),
+                'vida_max': random.randint(60, 120)
+            }
+            self.brillitos_perro.append(brillito)
+            self.tiempo_ultimo_brillito = tiempo_actual
+
+    def actualizar_brillitos(self):
+        """Actualiza todos los brillitos del perro"""
+        for brillito in self.brillitos_perro[:]:  # Copia para poder eliminar durante iteración
+            # Actualizar posición
+            brillito['x'] += brillito['vx']
+            brillito['y'] += brillito['vy']
+            
+            # Reducir vida
+            brillito['vida'] -= 1
+            
+            # Eliminar si se acabó la vida
+            if brillito['vida'] <= 0:
+                self.brillitos_perro.remove(brillito)
+
+    def dibujar_brillitos(self, pantalla):
+        """Dibuja todos los brillitos del perro"""
+        for brillito in self.brillitos_perro:
+            # Calcular alpha basado en la vida
+            alpha = int(255 * (brillito['vida'] / brillito['vida_max']))
+            
+            # Crear superficie con alpha
+            tamano = brillito['size'] * 2
+            surf = pygame.Surface((tamano, tamano), pygame.SRCALPHA)
+            
+            # Dibujar círculo principal
+            pygame.draw.circle(surf, brillito['color'], (tamano//2, tamano//2), brillito['size'])
+            
+            # Efecto de brillo adicional
+            color_brillo = tuple(min(255, c + 50) for c in brillito['color'])
+            pygame.draw.circle(surf, color_brillo, (tamano//2, tamano//2), max(1, brillito['size']//2))
+            
+            # Aplicar alpha
+            surf.set_alpha(alpha)
+            
+            pantalla.blit(surf, (int(brillito['x']) - tamano//2, int(brillito['y']) - tamano//2))
 
 
 # ==============================

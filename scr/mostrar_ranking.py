@@ -15,12 +15,12 @@ class MostrarRanking:
         # --- Textos Multi-idioma ---
         self.textos = {
             "es": {
-                "titulo": "🏆 Top 3 Records",
+                "titulo": "Top 3 Records",
                 "no_records": "No hay récords todavía",
                 "volver": "VOLVER"
             },
             "en": {
-                "titulo": "🏆 Top 3 High Scores",
+                "titulo": "Top 3 High Scores",
                 "no_records": "No records yet",
                 "volver": "BACK"
             }
@@ -34,16 +34,18 @@ class MostrarRanking:
         self.fuente_info = pygame.font.Font(None, 35)
         self.fuente_boton = pygame.font.Font(None, 55)
 
-        # --- Colores ---
-        self.color_titulo = (255, 255, 255)
-        self.color_nombre = (255, 255, 255)
-        self.color_puntaje = (255, 223, 0)
+        # --- Colores vibrantes ---
+        self.color_titulo = (255, 255, 100)      # Amarillo estándar
+        self.color_nombre = (100, 255, 255)    # Cyan vibrante
+        self.color_puntaje = (255, 100, 100)   # Rojo vibrante
         self.color_sombra = (0, 0, 0)
-        self.color_boton = (80, 80, 80)
-        self.color_boton_hover = (200, 180, 50) # Este es el color "seleccionado"
+        self.color_boton = (50, 80, 120)       # Azul oscuro
+        self.color_boton_hover = (255, 100, 50) # Naranja vibrante
+        self.color_fondo_top = (20, 30, 60)    # Azul muy oscuro
+        self.color_fondo_bottom = (60, 20, 40) # Morado oscuro
 
         # --- Fondo e imágenes ---
-        self.fondo = pygame.image.load("img/fondo.png").convert()
+        self.fondo = pygame.image.load("img/fondo2.png").convert()  # Fondo de día
         self.fondo = pygame.transform.scale(self.fondo, (ancho, alto))
 
         self.medalla_oro = pygame.image.load("img/oro.png").convert_alpha()
@@ -82,6 +84,12 @@ class MostrarRanking:
             return []
 
     def dibujar_texto_con_sombra(self, texto, fuente, color, x, y, centro=False):
+        # Verificar que el texto no sea None
+        if texto is None:
+            texto = "Sin nombre"
+        # Convertir a string si no lo es
+        texto = str(texto)
+        
         sombra = fuente.render(texto, True, self.color_sombra)
         render = fuente.render(texto, True, color)
         rect = render.get_rect(center=(x, y)) if centro else (x, y)
@@ -89,6 +97,33 @@ class MostrarRanking:
         sombra_rect.move_ip(3, 3)
         self.pantalla.blit(sombra, sombra_rect)
         self.pantalla.blit(render, rect)
+
+    def dibujar_fondo_colorido(self):
+        """Dibuja el fondo de día con estrellas coloridas"""
+        # Fondo de día como base
+        self.pantalla.blit(self.fondo, (0, 0))
+        
+        # Añadir estrellas coloridas estáticas
+        estrellas_positions = [
+            (80, 120), (320, 60), (520, 180), (720, 100),
+            (120, 380), (480, 320), (680, 420), (180, 280),
+            (580, 480), (380, 160), (780, 280), (30, 230),
+            (650, 150), (250, 400), (750, 350), (150, 50)
+        ]
+        
+        colores_estrellas = [
+            (255, 255, 100), (100, 255, 255), (255, 100, 255),
+            (100, 255, 100), (255, 255, 100), (200, 100, 255)
+        ]
+        
+        for i, pos in enumerate(estrellas_positions):
+            if pos[0] < self.ancho and pos[1] < self.alto:
+                color = colores_estrellas[i % len(colores_estrellas)]
+                # Dibujar estrella como un círculo con rayos
+                pygame.draw.circle(self.pantalla, color, pos, 3)
+                # Rayos de la estrella
+                pygame.draw.line(self.pantalla, color, (pos[0]-6, pos[1]), (pos[0]+6, pos[1]), 1)
+                pygame.draw.line(self.pantalla, color, (pos[0], pos[1]-6), (pos[0], pos[1]+6), 1)
 
     def mostrar(self):
         clock = pygame.time.Clock()
@@ -100,26 +135,13 @@ class MostrarRanking:
         seleccionado = True 
 
         while True:
-            # Fondo
-            self.pantalla.blit(self.fondo, (0, 0))
-            overlay = pygame.Surface((self.ancho, self.alto))
-            overlay.set_alpha(130)
-            overlay.fill((5, 5, 5))
-            self.pantalla.blit(overlay, (0, 0))
+            # Fondo colorido vibrante con estrellas
+            self.dibujar_fondo_colorido()
 
-            # Efecto glow en título
-            glow += glow_dir * 3 
-            if glow > 100 or glow < 0:
-                glow_dir *= -1
-            r = 255
-            g = max(0, min(255, 255 - glow // 2))
-            b = max(0, min(255, 255 - glow))
-            color_brillo = (r, g, b)
-
-            # --- Título principal ---
+            # --- Título principal colorido ---
             self.dibujar_texto_con_sombra(self.txt["titulo"],
                                           self.fuente_titulo,
-                                          color_brillo,
+                                          self.color_titulo,
                                           self.ancho // 2, 90, centro=True)
 
             top3 = self.obtener_top3()
@@ -143,6 +165,12 @@ class MostrarRanking:
                     if i >= len(top3): break # Seguridad
                         
                     x, y = posiciones[i]
+                    
+                    # Verificar valores None
+                    if nombre is None:
+                        nombre = "Sin nombre"
+                    if puntaje is None:
+                        puntaje = 0
 
                     # Cuadro
                     cuadro = pygame.Surface((260, 130), pygame.SRCALPHA)
@@ -155,17 +183,17 @@ class MostrarRanking:
                     self.pantalla.blit(medalla, (x - tamanios_medalla[i][0] // 2, y - 160))
 
                     # Nombre y puntaje
-                    self.dibujar_texto_con_sombra(nombre, self.fuente_nombre,
+                    self.dibujar_texto_con_sombra(str(nombre), self.fuente_nombre,
                                                   self.color_nombre, x, y + 45, centro=True)
                     self.dibujar_texto_con_sombra(f"{puntaje} pts", self.fuente_puntaje,
                                                   self.color_puntaje, x, y + 95, centro=True)
 
-            # --- Botón Volver ---
-            # MODIFICADO: Siempre seleccionado
-            color = self.color_boton_hover
+            # --- Botón Volver colorido ---
+            # MODIFICADO: Siempre seleccionado con colores vibrantes
+            color = self.color_boton_hover  # Naranja vibrante
 
             pygame.draw.rect(self.pantalla, color, boton_rect, border_radius=20)
-            pygame.draw.rect(self.pantalla, (0, 0, 0), boton_rect, 3, border_radius=20)
+            pygame.draw.rect(self.pantalla, (255, 255, 255), boton_rect, 3, border_radius=20)  # Borde blanco
 
             self.dibujar_texto_con_sombra(self.txt["volver"], self.fuente_boton,
                                           (255, 255, 255), boton_rect.centerx, boton_rect.centery, centro=True)

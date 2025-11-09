@@ -23,16 +23,29 @@ pygame.mixer.init()
 ANCHO, ALTO = 850, 670
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("🌟 DINO RUN EXTREME 🌟")
+pygame.display.set_caption("DINO RUN EXTREME")
 
 # --- FUNCIÓN INTRO ÉPICA ---
 def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, sonido_gameover=None, muted=False):
     """Muestra una intro épica antes de comenzar el juego"""
     
+    # Cargar y reproducir música de intro "Milky Way Wishes"
+    try:
+        pygame.mixer.music.load(os.path.join("musica", "Milky Way Wishes - Kirby Super Star OST.mp3"))
+        if not muted:
+            pygame.mixer.music.set_volume(0.4)  # Volumen al 40% para la intro
+            pygame.mixer.music.play(-1)  # Reproducir en bucle
+        else:
+            pygame.mixer.music.set_volume(0)
+            pygame.mixer.music.play(-1)
+        print("[MÚSICA INTRO] Milky Way Wishes cargada y reproduciendo")
+    except Exception as e:
+        print(f"[ERROR MÚSICA INTRO] No se pudo cargar Milky Way Wishes: {e}")
+    
     # Textos según idioma
     textos = {
         "es": {
-            "titulo": "🌟 DINO 🌟",
+            "titulo": " DINO ",
             "subtitulo": "¡PREPÁRATE PARA LA AVENTURA!",
             "lineas": [
                 "Un dinosaurio...",
@@ -44,7 +57,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
             "presiona": "PRESIONA CUALQUIER TECLA PARA CONTINUAR"
         },
         "en": {
-            "titulo": "🌟 DINO 🌟",
+            "titulo": " DINO ",
             "subtitulo": "GET READY FOR THE ADVENTURE!",
             "lineas": [
                 "One dinosaur...",
@@ -74,7 +87,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
     
     # Colores épicos
     color_fondo = (10, 10, 30)  # Azul muy oscuro
-    color_titulo = (255, 215, 0)  # Dorado
+    color_titulo = (255, 255, 100)  # Amarillo estándar
     color_subtitulo = (255, 100, 100)  # Rojo brillante
     color_linea = (255, 255, 255)  # Blanco
     color_continuar = (100, 255, 100)  # Verde brillante
@@ -98,7 +111,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
             self.vel_y = random.uniform(-2, 2)
             self.size = random.randint(1, 4)
             self.color = random.choice([
-                (255, 215, 0),  # Dorado
+                (255, 255, 100),  # Amarillo estándar
                 (255, 255, 255),  # Blanco
                 (255, 100, 100),  # Rojo
                 (100, 255, 255)   # Cian
@@ -220,7 +233,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
                 for j in range(10):
                     alpha = 255 - j * 25
                     if alpha > 0:
-                        color_rayo = (255, 215, 0, alpha)
+                        color_rayo = (255, 255, 100, alpha)
                         offset = j * 2
                         pygame.draw.line(ventana, color_rayo[:3], 
                                        (centro_x, centro_y), 
@@ -317,6 +330,13 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
         
         pygame.display.flip()
         pygame.time.wait(50)
+    
+    # Detener música de intro
+    try:
+        pygame.mixer.music.stop()
+        print("[MÚSICA INTRO] Milky Way Wishes detenida")
+    except Exception as e:
+        print(f"[ERROR MÚSICA INTRO] Error al detener música: {e}")
 
 # --- RUTA DE IMÁGENES (MOVIDA ARRIBA) ---
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
@@ -369,13 +389,32 @@ def dibujar_texto_simple(pantalla, texto, fuente, color, x, y, centrado=True, so
 
 # --- FUNCIÓN SELECCIONAR IDIOMA (MODIFICADO) ---
 def seleccionar_idioma_inicial(pantalla, ancho, alto):
-    """Muestra la pantalla inicial de selección de idioma."""
-    global arduino_serial # Importante usar la global
+    """Muestra la pantalla inicial de selección de idioma con colores vibrantes."""
+    global arduino_serial
     idioma_sel = "es"
     clock = pygame.time.Clock()
     
+    # Partículas coloridas para el fondo
+    particulas = []
+    for _ in range(30):
+        particulas.append({
+            'x': random.randint(0, ancho),
+            'y': random.randint(0, alto),
+            'vx': random.uniform(-0.5, 0.5),
+            'vy': random.uniform(-0.5, 0.5),
+            'color': random.choice([
+                (255, 100, 150),  # Rosa vibrante
+                (100, 255, 150),  # Verde vibrante
+                (150, 100, 255),  # Morado vibrante
+                (255, 255, 100),  # Amarillo estándar
+                (100, 200, 255),  # Azul vibrante
+                (255, 255, 100),  # Amarillo vibrante
+            ]),
+            'size': random.randint(2, 6)
+        })
+    
     try:
-        ruta_fondo = os.path.join(RUTA_BASE, "fondo.png")
+        ruta_fondo = os.path.join(RUTA_BASE, "fondo2.png")  # Usar fondo de día
         fondo_img = pygame.image.load(ruta_fondo).convert()
         fondo_img = pygame.transform.scale(fondo_img, (ancho, alto))
     except Exception as e:
@@ -383,44 +422,72 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
         fondo_img = None
 
     while True:
+        # Fondo
         if fondo_img:
             pantalla.blit(fondo_img, (0, 0))
         else:
             pantalla.fill((25, 25, 35))
+        
+        # Actualizar y dibujar partículas
+        for particula in particulas:
+            particula['x'] += particula['vx']
+            particula['y'] += particula['vy']
+            
+            # Rebotar en los bordes
+            if particula['x'] <= 0 or particula['x'] >= ancho:
+                particula['vx'] *= -1
+            if particula['y'] <= 0 or particula['y'] >= alto:
+                particula['vy'] *= -1
+            
+            # Dibujar partícula con brillo
+            pygame.draw.circle(pantalla, particula['color'], 
+                             (int(particula['x']), int(particula['y'])), particula['size'])
+            # Efecto de brillo
+            pygame.draw.circle(pantalla, tuple(min(255, c + 50) for c in particula['color']), 
+                             (int(particula['x']), int(particula['y'])), particula['size'] // 2)
 
+        # Título con color amarillo vibrante unificado
+        titulo_color = (255, 255, 100)  # Amarillo estándar
         dibujar_texto_simple(pantalla, "Seleccionar Idioma / Select Language", 
-                             fuente_idioma_titulo, (255, 255, 255), ancho // 2, alto // 3)
+                             fuente_idioma_titulo, titulo_color, ancho // 2, alto // 3)
 
-        color_es = (255, 230, 150) if idioma_sel == "es" else (200, 200, 200)
-        color_en = (255, 230, 150) if idioma_sel == "en" else (200, 200, 200)
+        # Opciones de idioma con colores vibrantes y efectos
+        if idioma_sel == "es":
+            color_es = (255, 150, 100)  # Naranja vibrante para seleccionado
+            color_en = (150, 150, 150)  # Gris para no seleccionado
+            # Efecto de brillo para español
+            for i in range(3):
+                color_brillo = tuple(max(0, c - i * 30) for c in color_es)
+                dibujar_texto_simple(pantalla, "Español", fuente_idioma_opcion, color_brillo, 
+                                   ancho // 2 - 150 + i, alto // 2 + 50 + i)
+        else:
+            color_es = (150, 150, 150)
+            color_en = (100, 255, 150)  # Verde vibrante para seleccionado
+            # Efecto de brillo para inglés
+            for i in range(3):
+                color_brillo = tuple(max(0, c - i * 30) for c in color_en)
+                dibujar_texto_simple(pantalla, "English", fuente_idioma_opcion, color_brillo, 
+                                   ancho // 2 + 150 + i, alto // 2 + 50 + i)
 
+        # Dibujar texto principal sin efecto si no está seleccionado
         dibujar_texto_simple(pantalla, "Español", fuente_idioma_opcion, color_es, 
                              ancho // 2 - 150, alto // 2 + 50)
         dibujar_texto_simple(pantalla, "English", fuente_idioma_opcion, color_en, 
                              ancho // 2 + 150, alto // 2 + 50)
 
-        # --- INSTRUCCIONES (MODIFICADO) ---
-        texto_inst_es = "Use 'Flecha Izquierda' / 'Flecha Derecha' para cambiar."
-        texto_inst_en = "Use 'Left Arrow' / 'Right Arrow' to toggle."
-        texto_inst_confirmar_es = "Confirme con 'Flecha Derecha'"
-        texto_inst_confirmar_en = "Confirm with 'Right Arrow'"
-
-        color_instruccion = (255, 230, 150) # Amarillo brillante
-
-        # MODIFICADO: Reagrupado y re-espaciado para mejor estética
+        # Instrucciones con colores vibrantes
+        color_instruccion = (255, 100, 100)  # Rojo vibrante para las instrucciones
+        color_principal = (255, 255, 100)    # Amarillo estándar para las palabras principales
         
-        # Grupo Español
-        dibujar_texto_simple(pantalla, texto_inst_es, fuente_idioma_instruccion, color_instruccion,
-                             ancho // 2, alto // 2 + 140)
-        dibujar_texto_simple(pantalla, texto_inst_confirmar_es, fuente_idioma_instruccion, color_instruccion,
-                             ancho // 2, alto // 2 + 180)
+        dibujar_texto_simple(pantalla, "Use 'Flecha Izquierda' / 'Flecha Derecha' para cambiar.", 
+                           fuente_idioma_instruccion, color_instruccion, ancho // 2, alto // 2 + 140)
+        dibujar_texto_simple(pantalla, "Confirme con 'Enter'", 
+                           fuente_idioma_instruccion, color_principal, ancho // 2, alto // 2 + 180)
         
-        # Grupo Inglés (con más espacio entre "es" y "en")
-        dibujar_texto_simple(pantalla, texto_inst_en, fuente_idioma_instruccion, color_instruccion,
-                             ancho // 2, alto // 2 + 240)
-        dibujar_texto_simple(pantalla, texto_inst_confirmar_en, fuente_idioma_instruccion, color_instruccion,
-                             ancho // 2, alto // 2 + 280)
-        # --- FIN INSTRUCCIONES ---
+        dibujar_texto_simple(pantalla, "Use 'Left Arrow' / 'Right Arrow' to toggle.", 
+                           fuente_idioma_instruccion, color_instruccion, ancho // 2, alto // 2 + 240)
+        dibujar_texto_simple(pantalla, "Confirm with 'Enter'", 
+                           fuente_idioma_instruccion, color_principal, ancho // 2, alto // 2 + 280)
 
 
         # --- Lectura Serial (MODIFICADO) ---
@@ -445,7 +512,7 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
                 except: pass
                 arduino_serial = None
 
-        # --- Eventos (MODIFICADO) ---
+        # --- Eventos ---
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 if arduino_serial and arduino_serial.is_open:
@@ -453,13 +520,11 @@ def seleccionar_idioma_inicial(pantalla, ancho, alto):
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT: # D5
+                if event.key == pygame.K_LEFT:  # Flecha izquierda
                     idioma_sel = "en" if idioma_sel == "es" else "es" # Alternar
-                elif event.key == pygame.K_RIGHT: # D3
-                    return idioma_sel # Confirmar
-                
-                # Mantener K_RETURN por si no hay Arduino
-                elif event.key == pygame.K_RETURN: 
+                elif event.key == pygame.K_RIGHT:  # Flecha derecha
+                    idioma_sel = "en" if idioma_sel == "es" else "es" # Alternar también
+                elif event.key == pygame.K_RETURN:  # Confirmar con Enter
                     return idioma_sel
 
 
@@ -750,7 +815,7 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
             # Fallback si hay error con la fuente
             ancho_texto = len(texto_record) * 20  # Estimación
         
-        color_record = (255, 215, 0) if record > 0 else (200, 200, 200)
+        color_record = (255, 255, 100) if record > 0 else (200, 200, 200)
         mostrar_texto_con_fondo(texto_record, ANCHO - ancho_texto - 15, 15, 
                                color_record, (50, 30, 30), VENTANA, 
                                tam=32, centrado=False, padding=12)
@@ -1060,7 +1125,7 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                 
                 # Texto principal
                 mostrar_texto(mensaje_prep, ANCHO // 2, ALTO // 2 - 30, 
-                            (255, 215, 0), VENTANA, tam=60, centrado=True, 
+                            (255, 255, 100), VENTANA, tam=60, centrado=True, 
                             sombra=True, fuente_personalizada=fuente_hud)
                 
                 # Contador
@@ -1125,9 +1190,9 @@ while True:
         # Añadir texto épico multiidioma
         fuente_juego = pygame.font.Font(None, 60)
         if idioma_actual == "es":
-            texto_iniciando = fuente_juego.render("INICIANDO AVENTURA...", True, (255, 215, 0))
+            texto_iniciando = fuente_juego.render("INICIANDO AVENTURA...", True, (255, 255, 100))
         else:
-            texto_iniciando = fuente_juego.render("STARTING ADVENTURE...", True, (255, 215, 0))
+            texto_iniciando = fuente_juego.render("STARTING ADVENTURE...", True, (255, 255, 100))
         texto_rect = texto_iniciando.get_rect(center=(ANCHO//2, ALTO//2))
         superficie_juego.blit(texto_iniciando, texto_rect)
         
@@ -1192,9 +1257,9 @@ while True:
         # Añadir texto épico
         fuente_mundo = pygame.font.Font(None, 60)
         if idioma_actual == "es":
-            texto_mundo = fuente_mundo.render("ELIGIENDO MUNDO...", True, (255, 215, 0))
+            texto_mundo = fuente_mundo.render("ELIGIENDO MUNDO...", True, (255, 255, 100))
         else:
-            texto_mundo = fuente_mundo.render("CHOOSING WORLD...", True, (255, 215, 0))
+            texto_mundo = fuente_mundo.render("CHOOSING WORLD...", True, (255, 255, 100))
         texto_rect = texto_mundo.get_rect(center=(ANCHO//2, ALTO//2))
         superficie_espacial.blit(texto_mundo, texto_rect)
         
@@ -1245,9 +1310,9 @@ while True:
         # Añadir texto épico específico
         fuente_personaje = pygame.font.Font(None, 60)
         if idioma_actual == "es":
-            texto_personaje = fuente_personaje.render("ELIGIENDO HÉROE...", True, (255, 215, 0))
+            texto_personaje = fuente_personaje.render("ELIGIENDO HÉROE...", True, (255, 255, 100))
         else:
-            texto_personaje = fuente_personaje.render("CHOOSING HERO...", True, (255, 215, 0))
+            texto_personaje = fuente_personaje.render("CHOOSING HERO...", True, (255, 255, 100))
         texto_rect = texto_personaje.get_rect(center=(ANCHO//2, ALTO//2))
         superficie_espacial.blit(texto_personaje, texto_rect)
         
