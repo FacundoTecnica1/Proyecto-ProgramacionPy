@@ -174,19 +174,34 @@ class Menu:
             self.dibujar_boton_idioma(seleccionado=(self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0))
             self.dibujar_icono_musica(seleccionado=(self.opcion_seleccionada == 0 and self.seleccion_horizontal == 1))
 
-            # --- Botones principales ---
+            # --- Botones principales en 2 columnas ---
+            # Layout: primeras 4 opciones en 2 columnas x 2 filas, la última opción (Salir) centrada abajo
             self.botones_rects.clear()
-            espacio_vertical = 85 # MODIFICADO: Menos espacio para que quepan 5 opciones
-            inicio_y = self.alto // 2 - 120 # MODIFICADO: Subir un poco
             x_centro = self.ancho // 2
+            columna_offset = 220  # separación horizontal entre columnas
+            inicio_y = self.alto // 2 - 70
+            espacio_vertical = 120
 
-            # MODIFICADO: Itera sobre self.opciones (que ahora se actualiza)
-            for i, opcion in enumerate(self.opciones):
+            # Dibujar las primeras 4 opciones en 2 columnas
+            for i in range(min(4, len(self.opciones))):
+                opcion = self.opciones[i]
                 indice_real = i + 1
-                y = inicio_y + i * espacio_vertical
-                rect = self.dibujar_boton(opcion, x_centro, y,
+                fila = i // 2  # 0 o 1
+                col = i % 2    # 0 = izquierda, 1 = derecha
+                x = x_centro - columna_offset if col == 0 else x_centro + columna_offset
+                y = inicio_y + fila * espacio_vertical
+                rect = self.dibujar_boton(opcion, x, y,
                                           seleccionado=(self.opcion_seleccionada == indice_real))
                 self.botones_rects.append(rect)
+
+            # Si hay una quinta opción (Salir), dibujarla centrada un poco más abajo
+            if len(self.opciones) >= 5:
+                opcion_salir = self.opciones[4]
+                indice_salir = 5
+                y_salir = inicio_y + 2 * espacio_vertical + 20
+                rect_salir = self.dibujar_boton(opcion_salir, x_centro, y_salir,
+                                                seleccionado=(self.opcion_seleccionada == indice_salir))
+                self.botones_rects.append(rect_salir)
 
             # ----------------------------------------------------
             # ⬇️ BLOQUE DE LECTURA SERIAL (AÑADIDO) ⬇️
