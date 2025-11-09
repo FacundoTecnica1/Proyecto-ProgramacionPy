@@ -14,6 +14,7 @@ from utils import mostrar_texto, mostrar_texto_con_fondo, crear_fuente_titulo, c
 from menu import Menu
 from seleccionar_mundo import SeleccionMundo
 from elegir_nombre import ElegirNombre
+from transiciones import TransicionPantalla, capturar_pantalla  # <-- NUEVO: Para transiciones
 
 pygame.init()
 pygame.mixer.init()
@@ -31,7 +32,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
     # Textos según idioma
     textos = {
         "es": {
-            "titulo": "🌟 DINO RUN EXTREME 🌟",
+            "titulo": "🌟 DINO 🌟",
             "subtitulo": "¡PREPÁRATE PARA LA AVENTURA!",
             "lineas": [
                 "Un dinosaurio...",
@@ -43,7 +44,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
             "presiona": "PRESIONA CUALQUIER TECLA PARA CONTINUAR"
         },
         "en": {
-            "titulo": "🌟 DINO RUN EXTREME 🌟",
+            "titulo": "🌟 DINO 🌟",
             "subtitulo": "GET READY FOR THE ADVENTURE!",
             "lineas": [
                 "One dinosaur...",
@@ -1108,9 +1109,55 @@ while True:
     idioma_actual = menu.idioma # <-- ¡MUY IMPORTANTE!
 
     if opcion_menu == "jugar":
+        # TRANSICIÓN ÉPICA AL COMENZAR EL JUEGO
+        superficie_menu = capturar_pantalla(VENTANA)
+        transicion = TransicionPantalla(VENTANA, ANCHO, ALTO)
+        
+        # Crear superficie negra con estrellas para la transición al juego
+        superficie_juego = pygame.Surface((ANCHO, ALTO))
+        superficie_juego.fill((10, 10, 30))
+        for i in range(80):
+            x = random.randint(0, ANCHO)
+            y = random.randint(0, ALTO)
+            brillo = random.randint(100, 255)
+            pygame.draw.circle(superficie_juego, (brillo, brillo, brillo), (x, y), random.randint(1, 3))
+        
+        # Añadir texto épico multiidioma
+        fuente_juego = pygame.font.Font(None, 60)
+        if idioma_actual == "es":
+            texto_iniciando = fuente_juego.render("INICIANDO AVENTURA...", True, (255, 215, 0))
+        else:
+            texto_iniciando = fuente_juego.render("STARTING ADVENTURE...", True, (255, 215, 0))
+        texto_rect = texto_iniciando.get_rect(center=(ANCHO//2, ALTO//2))
+        superficie_juego.blit(texto_iniciando, texto_rect)
+        
+        # TRANSICIÓN ZOOM SPIRAL AL JUEGO
+        transicion.transicion_zoom_spiral(superficie_menu, superficie_juego, 800)
+        
         # Llamar a la función del juego con la configuración actual
-        # MODIFICADO: Se pasa 'idioma_actual'
         record_actual = bucle_juego(personaje_actual, mundo_actual, nombre_jugador, id_usuario, menu.volumen_sfx, record_actual, idioma_actual, menu.muted)
+        
+        # --- TRANSICIÓN DE REGRESO DESDE EL JUEGO ---
+        # Capturar una pantalla negra como "fin del juego"
+        superficie_fin_juego = pygame.Surface((ANCHO, ALTO))
+        superficie_fin_juego.fill((20, 20, 40))
+        fuente_fin = pygame.font.Font(None, 48)
+        if idioma_actual == "es":
+            texto_fin = fuente_fin.render("REGRESANDO AL MENÚ...", True, (255, 255, 255))
+        else:
+            texto_fin = fuente_fin.render("RETURNING TO MENU...", True, (255, 255, 255))
+        texto_rect_fin = texto_fin.get_rect(center=(ANCHO//2, ALTO//2))
+        superficie_fin_juego.blit(texto_fin, texto_rect_fin)
+        
+        # Renderizar menú de destino
+        superficie_menu_regreso = pygame.Surface((ANCHO, ALTO))
+        superficie_menu_regreso.blit(menu.fondo_img, (0, 0))
+        titulo_surf = menu.fuente_titulo.render(menu.txt["titulo"], True, menu.color_texto)
+        titulo_rect = titulo_surf.get_rect(center=(ANCHO // 2, 100))
+        superficie_menu_regreso.blit(titulo_surf, titulo_rect)
+        
+        # TRANSICIÓN FADE DE REGRESO
+        transicion.transicion_fade(superficie_fin_juego, superficie_menu_regreso, 400)
         
         # --- LIMPIAR Y REACTIVAR MÚSICA DEL MENÚ AL VOLVER ---
         print("[AUDIO] Regresando al menú, limpiando audio...")
@@ -1127,17 +1174,106 @@ while True:
         actualizar_volumen_sfx(menu.volumen_sfx)
     
     elif opcion_menu == "mundo":
-        # MODIFICADO: Se pasa el idioma
+        # CAPTURAR PANTALLA ACTUAL PARA TRANSICIÓN
+        superficie_menu = capturar_pantalla(VENTANA)
+        
+        # CREAR TRANSICIÓN ÉPICA (ZOOM SPIRAL PARA TODO!)
+        transicion = TransicionPantalla(VENTANA, ANCHO, ALTO)
+        
+        # CREAR SUPERFICIE CON EFECTO ESPACIAL PARA MUNDO
+        superficie_espacial = pygame.Surface((ANCHO, ALTO))
+        superficie_espacial.fill((20, 40, 60))  # Azul nocturno para mundo
+        # Añadir estrellas temáticas del mundo
+        for i in range(40):
+            x = random.randint(0, ANCHO)
+            y = random.randint(0, ALTO)
+            pygame.draw.circle(superficie_espacial, (255, 255, 200), (x, y), random.randint(1, 3))
+        
+        # Añadir texto épico
+        fuente_mundo = pygame.font.Font(None, 60)
+        if idioma_actual == "es":
+            texto_mundo = fuente_mundo.render("ELIGIENDO MUNDO...", True, (255, 215, 0))
+        else:
+            texto_mundo = fuente_mundo.render("CHOOSING WORLD...", True, (255, 215, 0))
+        texto_rect = texto_mundo.get_rect(center=(ANCHO//2, ALTO//2))
+        superficie_espacial.blit(texto_mundo, texto_rect)
+        
+        # ZOOM SPIRAL ÉPICO PARA MUNDO
+        transicion.transicion_zoom_spiral(superficie_menu, superficie_espacial, 600)
+        
+        # AHORA MOSTRAR EL SELECTOR NORMALMENTE
         selector_mundo = SeleccionMundo(VENTANA, ANCHO, ALTO, arduino_serial, idioma_actual) 
         mundo_seleccionado = selector_mundo.mostrar()
+        
+        # TRANSICIÓN ÉPICA DE REGRESO AL MENÚ
+        if mundo_seleccionado == "volver" or mundo_seleccionado not in ("noche", "dia"):
+            # Capturar pantalla del submenú antes de salir
+            superficie_submenu = capturar_pantalla(VENTANA)
+            
+            # Renderizar menú principal en superficie temporal
+            superficie_menu_regreso = pygame.Surface((ANCHO, ALTO))
+            superficie_menu_regreso.blit(menu.fondo_img, (0, 0))
+            # Dibujar elementos básicos del menú
+            titulo_surf = menu.fuente_titulo.render(menu.txt["titulo"], True, menu.color_texto)
+            titulo_rect = titulo_surf.get_rect(center=(ANCHO // 2, 100))
+            superficie_menu_regreso.blit(titulo_surf, titulo_rect)
+            
+            # ¡ZOOM SPIRAL INVERSO ÉPICO!
+            transicion.transicion_zoom_spiral(superficie_submenu, superficie_menu_regreso, 600)
+        
         if mundo_seleccionado in ("noche", "dia"):
             mundo_actual = mundo_seleccionado # Actualizar estado global
         # NO reanudar música - la música nunca se pausó en los submenús
             
     elif opcion_menu == "personaje":
-        # MODIFICADO: Se pasa el idioma
+        # CAPTURAR PANTALLA ACTUAL PARA TRANSICIÓN
+        superficie_menu = capturar_pantalla(VENTANA)
+        
+        # CREAR TRANSICIÓN ÉPICA (ZOOM SPIRAL)
+        transicion = TransicionPantalla(VENTANA, ANCHO, ALTO)
+        
+        # CREAR SUPERFICIE CON EFECTO ESPACIAL PARA PERSONAJES
+        superficie_espacial = pygame.Surface((ANCHO, ALTO))
+        superficie_espacial.fill((60, 30, 80))  # Púrpura espacial para personajes
+        # Añadir estrellas de diferentes colores
+        for i in range(50):
+            x = random.randint(0, ANCHO)
+            y = random.randint(0, ALTO)
+            color_estrella = random.choice([(255, 255, 255), (255, 200, 255), (200, 255, 255)])
+            pygame.draw.circle(superficie_espacial, color_estrella, (x, y), random.randint(1, 3))
+        
+        # Añadir texto épico específico
+        fuente_personaje = pygame.font.Font(None, 60)
+        if idioma_actual == "es":
+            texto_personaje = fuente_personaje.render("ELIGIENDO HÉROE...", True, (255, 215, 0))
+        else:
+            texto_personaje = fuente_personaje.render("CHOOSING HERO...", True, (255, 215, 0))
+        texto_rect = texto_personaje.get_rect(center=(ANCHO//2, ALTO//2))
+        superficie_espacial.blit(texto_personaje, texto_rect)
+        
+        # TRANSICIÓN ZOOM SPIRAL (MÁS ÉPICA PARA PERSONAJES)
+        transicion.transicion_zoom_spiral(superficie_menu, superficie_espacial, 600)
+        
+        # AHORA MOSTRAR EL SELECTOR NORMALMENTE
         selector_personaje = SeleccionPersonaje(VENTANA, ANCHO, ALTO, arduino_serial, idioma_actual)
         personaje_seleccionado = selector_personaje.mostrar()
+        
+        # TRANSICIÓN ÉPICA DE REGRESO AL MENÚ
+        if personaje_seleccionado == "volver" or personaje_seleccionado not in ("perro", "gato"):
+            # Capturar pantalla del selector de personajes
+            superficie_personajes = capturar_pantalla(VENTANA)
+            
+            # Renderizar menú principal en superficie temporal
+            superficie_menu_regreso = pygame.Surface((ANCHO, ALTO))
+            superficie_menu_regreso.blit(menu.fondo_img, (0, 0))
+            # Dibujar elementos básicos del menú
+            titulo_surf = menu.fuente_titulo.render(menu.txt["titulo"], True, menu.color_texto)
+            titulo_rect = titulo_surf.get_rect(center=(ANCHO // 2, 100))
+            superficie_menu_regreso.blit(titulo_surf, titulo_rect)
+            
+            # ¡TRANSICIÓN ZOOM SPIRAL INVERSA! (La mejor como dijiste)
+            transicion.transicion_zoom_spiral(superficie_personajes, superficie_menu_regreso, 600)
+        
         if personaje_seleccionado in ("perro", "gato"):
             personaje_actual = personaje_seleccionado # Actualizar estado global
         # NO reanudar música - la música nunca se pausó en los submenús

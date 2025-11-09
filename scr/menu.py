@@ -1,8 +1,11 @@
 import pygame
 import sys
 import os
+import math  # <-- AÑADIDO para las transiciones
+import random  # <-- AÑADIDO para efectos de partículas
 import serial # <-- MODIFICADO: Importado
 from mostrar_ranking import MostrarRanking
+from transiciones import TransicionPantalla, capturar_pantalla  # <-- NUEVO: Para transiciones épicas
 
 # --- FUNCIONES DE MÚSICA DEL MENÚ ---
 def cargar_musica_menu():
@@ -139,6 +142,14 @@ class Menu:
         self.muted = False
         self.volumen_anterior = self.volumen_sfx
 
+        # --- VARIABLES DE TRANSICIÓN SUAVE ---
+        self.transicion_activa = False
+        self.tiempo_transicion = 0
+        self.duracion_transicion = 200  # milisegundos
+        self.opcion_anterior = self.opcion_seleccionada
+        self.seleccion_horizontal_anterior = self.seleccion_horizontal
+        self.alpha_transicion = 255  # opacidad de la transición
+
         # Fondo
         ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo.png")
         self.fondo_img = pygame.image.load(ruta_fondo).convert()
@@ -181,7 +192,28 @@ class Menu:
         pygame.draw.rect(sombra_surf, self.color_sombra, sombra_surf.get_rect(), border_radius=self.radio_boton)
         self.pantalla.blit(sombra_surf, sombra_rect.topleft)
 
-        color = self.color_hover if seleccionado else self.color_boton
+        # Color del botón con efectos especiales si está seleccionado
+        if seleccionado:
+            # Efecto de brillo pulsante
+            tiempo_actual = pygame.time.get_ticks()
+            brillo = abs(math.sin(tiempo_actual * 0.005)) * 50 + 50  # Pulso entre 50-100
+            color = (int(50 + brillo), int(50 + brillo), int(50 + brillo * 0.5))
+            
+            # Borde brillante
+            pygame.draw.rect(self.pantalla, self.color_hover, rect, 3, border_radius=self.radio_boton)
+            
+            # Efectos de partículas en las esquinas (solo algunas veces)
+            if random.random() < 0.3:  # 30% de probabilidad cada frame
+                for i in range(4):
+                    corner_x = rect.left if i < 2 else rect.right
+                    corner_y = rect.top if i % 2 == 0 else rect.bottom
+                    offset_x = random.randint(-8, 8)
+                    offset_y = random.randint(-8, 8)
+                    pygame.draw.circle(self.pantalla, (255, 255, 100), 
+                                     (corner_x + offset_x, corner_y + offset_y), 2)
+        else:
+            color = self.color_boton
+
         pygame.draw.rect(self.pantalla, color, rect, border_radius=self.radio_boton)
 
         texto_surf = self.fuente_opcion.render(texto, True, self.color_texto)
@@ -212,6 +244,70 @@ class Menu:
     def cambiar_idioma(self):
         self.idioma = "en" if self.idioma == "es" else "es"
         self.actualizar_textos()
+
+    # ------------------------------------------------------------
+    def iniciar_transicion(self):
+        """Inicia una transición suave entre selecciones"""
+        self.transicion_activa = True
+        self.tiempo_transicion = pygame.time.get_ticks()
+        self.opcion_anterior = self.opcion_seleccionada
+        self.seleccion_horizontal_anterior = self.seleccion_horizontal
+        self.alpha_transicion = 255
+
+    def actualizar_transicion(self):
+        """Actualiza el estado de la transición"""
+        if not self.transicion_activa:
+            return
+        
+        tiempo_actual = pygame.time.get_ticks()
+        tiempo_transcurrido = tiempo_actual - self.tiempo_transicion
+        
+        if tiempo_transcurrido >= self.duracion_transicion:
+            self.transicion_activa = False
+            self.alpha_transicion = 255
+        else:
+            # Interpolación suave (ease-out)
+            progreso = tiempo_transcurrido / self.duracion_transicion
+            self.alpha_transicion = int(255 * (1 - progreso * progreso))
+
+    def dibujar_efecto_transicion(self):
+        """Dibuja efectos visuales durante la transición"""
+        if not self.transicion_activa:
+            return
+            
+        # Crear superficie de transición con transparencia
+        superficie_transicion = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        
+        # Efecto de ondas desde el centro
+        centro_x, centro_y = self.ancho // 2, self.alto // 2
+        radio_max = 150
+        
+        tiempo_actual = pygame.time.get_ticks()
+        tiempo_transcurrido = tiempo_actual - self.tiempo_transicion
+        progreso = min(tiempo_transcurrido / self.duracion_transicion, 1.0)
+        
+        # Ondas concéntricas
+        for i in range(3):
+            radio = int(radio_max * progreso - i * 30)
+            if radio > 0:
+                alpha = max(0, self.alpha_transicion - i * 60)
+                color_onda = (255, 230, 150, alpha // 3)
+                pygame.draw.circle(superficie_transicion, color_onda, 
+                                 (centro_x, centro_y), radio, 3)
+        
+        # Partículas brillantes
+        for i in range(8):
+            angulo = (tiempo_transcurrido * 0.01 + i * 45) % 360
+            radio_particula = 80 + 30 * progreso
+            x = centro_x + radio_particula * math.cos(math.radians(angulo))
+            y = centro_y + radio_particula * math.sin(math.radians(angulo))
+            
+            alpha_particula = max(0, self.alpha_transicion - 100)
+            color_particula = (255, 255, 100, alpha_particula)
+            pygame.draw.circle(superficie_transicion, color_particula, 
+                             (int(x), int(y)), 4)
+        
+        self.pantalla.blit(superficie_transicion, (0, 0))
 
     # ------------------------------------------------------------
     def dibujar_icono_musica(self, seleccionado=False):
@@ -347,17 +443,22 @@ class Menu:
                     if event.key == pygame.K_UP: # D2
                         if self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0:
                             self.cambiar_idioma() # Cambiar idioma con UP
+                            self.iniciar_transicion()  # Activar transición
                         else:
+                            self.iniciar_transicion()  # Activar transición
                             self.opcion_seleccionada = (self.opcion_seleccionada - 1) % total_opciones
 
                     elif event.key == pygame.K_DOWN: # D4
                         if self.opcion_seleccionada == 0 and self.seleccion_horizontal == 0:
                             self.cambiar_idioma() # Cambiar idioma con DOWN
+                            self.iniciar_transicion()  # Activar transición
                         else:
+                            self.iniciar_transicion()  # Activar transición
                             self.opcion_seleccionada = (self.opcion_seleccionada + 1) % total_opciones
 
                     elif event.key == pygame.K_LEFT: # D5
                          if self.opcion_seleccionada == 0:
+                            self.iniciar_transicion()  # Activar transición
                             self.seleccion_horizontal = (self.seleccion_horizontal - 1) % 2
                          # MODIFICADO: Si se presiona IZQUIERDA en un botón, no hace nada.
                          # else:
@@ -403,9 +504,50 @@ class Menu:
                                 # NO pausar música - mantener continua en submenús
                                 return "personaje"
                             elif opcion_limpia.startswith(("Ver Rankings", "View Rankings")):
-                                # MODIFICADO: Pasa el arduino_serial y el idioma
+                                # CAPTURAR PANTALLA ACTUAL PARA TRANSICIÓN ÉPICA
+                                superficie_menu = capturar_pantalla(self.pantalla)
+                                
+                                # CREAR TRANSICIÓN ZOOM SPIRAL PARA RANKING
+                                transicion = TransicionPantalla(self.pantalla, self.ancho, self.alto)
+                                
+                                # CREAR SUPERFICIE CON EFECTO ESPACIAL PARA RANKING
+                                superficie_ranking = pygame.Surface((self.ancho, self.alto))
+                                superficie_ranking.fill((80, 50, 20))  # Dorado/naranja para ranking
+                                # Añadir estrellas doradas y trofeos
+                                for i in range(60):
+                                    x = random.randint(0, self.ancho)
+                                    y = random.randint(0, self.alto)
+                                    color_estrella = random.choice([(255, 215, 0), (255, 255, 100), (255, 200, 50)])
+                                    pygame.draw.circle(superficie_ranking, color_estrella, (x, y), random.randint(1, 4))
+                                
+                                # Añadir texto épico para ranking
+                                fuente_ranking = pygame.font.Font(None, 60)
+                                if self.idioma == "es":
+                                    texto_ranking = fuente_ranking.render("SALÓN DE LA FAMA...", True, (255, 215, 0))
+                                else:
+                                    texto_ranking = fuente_ranking.render("HALL OF FAME...", True, (255, 215, 0))
+                                texto_rect = texto_ranking.get_rect(center=(self.ancho//2, self.alto//2))
+                                superficie_ranking.blit(texto_ranking, texto_rect)
+                                
+                                # ZOOM SPIRAL ÉPICO PARA RANKING
+                                transicion.transicion_zoom_spiral(superficie_menu, superficie_ranking, 700)
+                                
+                                # MOSTRAR RANKING NORMALMENTE
                                 pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto, self.arduino_serial, self.idioma)
                                 pantalla_ranking.mostrar()
+                                
+                                # TRANSICIÓN DE REGRESO ÉPICA
+                                superficie_ranking_salida = capturar_pantalla(self.pantalla)
+                                
+                                # Renderizar menú de regreso
+                                superficie_menu_regreso = pygame.Surface((self.ancho, self.alto))
+                                superficie_menu_regreso.blit(self.fondo_img, (0, 0))
+                                titulo_surf = self.fuente_titulo.render(self.txt["titulo"], True, self.color_texto)
+                                titulo_rect = titulo_surf.get_rect(center=(self.ancho // 2, 100))
+                                superficie_menu_regreso.blit(titulo_surf, titulo_rect)
+                                
+                                # ZOOM SPIRAL INVERSO ÉPICO
+                                transicion.transicion_zoom_spiral(superficie_ranking_salida, superficie_menu_regreso, 600)
                             elif opcion_limpia.startswith(("Salir", "Exit")):
                                 # Detener música antes de salir
                                 if self.musica_cargada:
@@ -439,6 +581,10 @@ class Menu:
                             if self.musica_cargada:
                                 pygame.mixer.music.set_volume(0)
                             print("[VOLUMEN] Audio muteado")
+
+            # --- ACTUALIZAR Y DIBUJAR TRANSICIONES ---
+            self.actualizar_transicion()
+            self.dibujar_efecto_transicion()
 
             pygame.display.flip()
             clock.tick(60)
