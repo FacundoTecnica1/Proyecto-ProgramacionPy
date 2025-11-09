@@ -6,6 +6,12 @@ import mysql.connector
 import serial # <-- MODIFICADO: Importado
 import random  # Para los efectos de brillitos
 
+# --- RUTAS PARA PYINSTALLER ---
+if getattr(sys, 'frozen', False):
+    RUTA_BASE = os.path.join(sys._MEIPASS, "img")
+else:
+    RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
+
 class ElegirNombre:
     # MODIFICADO: Añadido arduino_serial=None e idioma="es"
     def __init__(self, pantalla, ancho, alto, arduino_serial=None, idioma="es"):
@@ -78,7 +84,7 @@ class ElegirNombre:
         self.txt = self.textos[self.idioma]
 
         # Fondo opcional
-        ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo.png")
+        ruta_fondo = os.path.join(RUTA_BASE, "fondo.png")
         if os.path.exists(ruta_fondo):
             self.fondo_img = pygame.image.load(ruta_fondo).convert()
             self.fondo_img = pygame.transform.scale(self.fondo_img, (self.ancho, self.alto))

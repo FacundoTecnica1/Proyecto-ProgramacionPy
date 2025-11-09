@@ -4,11 +4,15 @@ import os
 import random
 import serial 
 
+# --- RUTAS PARA PYINSTALLER ---
+if getattr(sys, 'frozen', False):
+    RUTA_BASE = os.path.join(sys._MEIPASS, "img")
+else:
+    RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
 
 # --- FUNCIÓN PARA CARGAR IMAGEN ---
 def cargar_imagen(nombre):
-    ruta_base = os.path.join(os.path.dirname(__file__), "..", "img")
-    return pygame.image.load(os.path.join(ruta_base, nombre)).convert_alpha()
+    return pygame.image.load(os.path.join(RUTA_BASE, nombre)).convert_alpha()
 
 
 # --- FUNCIÓN PARA ESCALAR LISTAS DE IMÁGENES ---
@@ -105,8 +109,7 @@ class SeleccionPersonaje:
         self.color_fondo_bottom = (80, 20, 60) # Morado oscuro
 
         # --- Fondo ---
-        ruta_base = os.path.join(os.path.dirname(__file__), "..", "img")
-        self.fondo = pygame.image.load(os.path.join(ruta_base, "fondo.png")).convert()
+        self.fondo = pygame.image.load(os.path.join(RUTA_BASE, "fondo.png")).convert()
         self.fondo = pygame.transform.scale(self.fondo, (ancho, alto))
 
         # Brillitos del selector de personajes

@@ -1,7 +1,14 @@
 import pygame
 import mysql.connector
 import sys
+import os
 import serial # <-- MODIFICADO: Importado
+
+# --- RUTAS PARA PYINSTALLER ---
+if getattr(sys, 'frozen', False):
+    RUTA_BASE = os.path.join(sys._MEIPASS, "img")
+else:
+    RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
 
 class MostrarRanking:
     # MODIFICADO: Añadido arduino_serial=None e idioma
@@ -45,12 +52,12 @@ class MostrarRanking:
         self.color_fondo_bottom = (60, 20, 40) # Morado oscuro
 
         # --- Fondo e imágenes ---
-        self.fondo = pygame.image.load("img/fondo2.png").convert()  # Fondo de día
+        self.fondo = pygame.image.load(os.path.join(RUTA_BASE, "fondo2.png")).convert()  # Fondo de día
         self.fondo = pygame.transform.scale(self.fondo, (ancho, alto))
 
-        self.medalla_oro = pygame.image.load("img/oro.png").convert_alpha()
-        self.medalla_plata = pygame.image.load("img/plata.png").convert_alpha()
-        self.medalla_bronce = pygame.image.load("img/bronce.png").convert_alpha()
+        self.medalla_oro = pygame.image.load(os.path.join(RUTA_BASE, "oro.png")).convert_alpha()
+        self.medalla_plata = pygame.image.load(os.path.join(RUTA_BASE, "plata.png")).convert_alpha()
+        self.medalla_bronce = pygame.image.load(os.path.join(RUTA_BASE, "bronce.png")).convert_alpha()
 
         # --- Conexión BD ---
         try:

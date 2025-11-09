@@ -7,11 +7,19 @@ import serial # <-- MODIFICADO: Importado
 from mostrar_ranking import MostrarRanking
 from transiciones import TransicionPantalla, capturar_pantalla  # <-- NUEVO: Para transiciones épicas
 
+# --- RUTAS PARA PYINSTALLER ---
+if getattr(sys, 'frozen', False):
+    RUTA_BASE = os.path.join(sys._MEIPASS, "img")
+    RUTA_MUSICA = os.path.join(sys._MEIPASS, "musica")
+else:
+    RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
+    RUTA_MUSICA = os.path.join(os.path.dirname(__file__), "..", "musica")
+
 # --- FUNCIONES DE MÚSICA DEL MENÚ ---
 def cargar_musica_menu():
     """Carga la música del menú"""
     try:
-        pygame.mixer.music.load(os.path.join("musica", "MenuMusica.mp3"))
+        pygame.mixer.music.load(os.path.join(RUTA_MUSICA, "MenuMusica.mp3"))
         pygame.mixer.music.set_volume(0.4)  # Volumen al 40% para el menú
         print("[MÚSICA MENÚ] Música del menú cargada correctamente")
         return True
@@ -155,12 +163,12 @@ class Menu:
         self.alpha_transicion = 255  # opacidad de la transición
 
         # Fondo - cambiar a fondo de día (fondo2.png)
-        ruta_fondo = os.path.join(os.path.dirname(__file__), "..", "img", "fondo2.png")
+        ruta_fondo = os.path.join(RUTA_BASE, "fondo2.png")
         self.fondo_img = pygame.image.load(ruta_fondo).convert()
         self.fondo_img = pygame.transform.scale(self.fondo_img, (self.ancho, self.alto))
 
         # Icono de música
-        ruta_icono = os.path.join(os.path.dirname(__file__), "..", "img", "IconoMusica.png")
+        ruta_icono = os.path.join(RUTA_BASE, "IconoMusica.png")
         try:
             self.icono_musica = pygame.image.load(ruta_icono).convert_alpha()
             self.icono_musica = pygame.transform.scale(self.icono_musica, (60, 60))

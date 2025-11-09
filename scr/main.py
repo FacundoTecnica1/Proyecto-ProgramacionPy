@@ -31,7 +31,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
     
     # Cargar y reproducir música de intro "Milky Way Wishes"
     try:
-        pygame.mixer.music.load(os.path.join("musica", "Milky Way Wishes - Kirby Super Star OST.mp3"))
+        pygame.mixer.music.load(os.path.join(RUTA_MUSICA, "Milky Way Wishes - Kirby Super Star OST.mp3"))
         if not muted:
             pygame.mixer.music.set_volume(0.4)  # Volumen al 40% para la intro
             pygame.mixer.music.play(-1)  # Reproducir en bucle
@@ -338,8 +338,16 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
     except Exception as e:
         print(f"[ERROR MÚSICA INTRO] Error al detener música: {e}")
 
-# --- RUTA DE IMÁGENES (MOVIDA ARRIBA) ---
-RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
+# --- RUTA DE IMÁGENES Y MÚSICA (MOVIDA ARRIBA) ---
+# Detectar si estamos en PyInstaller o en desarrollo
+if getattr(sys, 'frozen', False):
+    # Ejecutando como ejecutable de PyInstaller
+    RUTA_BASE = os.path.join(sys._MEIPASS, "img")
+    RUTA_MUSICA = os.path.join(sys._MEIPASS, "musica")
+else:
+    # Ejecutando como script normal
+    RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
+    RUTA_MUSICA = os.path.join(os.path.dirname(__file__), "..", "musica")
 
 # ----------------------------------------------------
 # ⬇️ CONFIGURACIÓN Y CONEXIÓN SERIAL (GLOBAL) ⬇️
@@ -638,8 +646,8 @@ cactus_dia_imgs = imagenes_base["cactus_dia"]
 
 
 # --- SONIDOS DE EFECTOS ---
-sonido_salto = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoSalto.mp3"))
-sonido_gameover = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoGameOver.mp3"))
+sonido_salto = pygame.mixer.Sound(os.path.join(RUTA_MUSICA, "EfectoSonidoSalto.mp3"))
+sonido_gameover = pygame.mixer.Sound(os.path.join(RUTA_MUSICA, "EfectoSonidoGameOver.mp3"))
 
 def actualizar_volumen_sfx(volumen):
     """Actualiza el volumen de efectos de sonido y música"""
@@ -665,7 +673,7 @@ def iniciar_musica_fondo(muted=False):
     """Inicia la música de fondo del juego en loop"""
     try:
         # Recargar la música del juego para asegurar que es la correcta
-        pygame.mixer.music.load(os.path.join("musica", "ATLXS & DJ FKU - MONTAGEM REBOLA [Phonk].mp3"))
+        pygame.mixer.music.load(os.path.join(RUTA_MUSICA, "ATLXS & DJ FKU - MONTAGEM REBOLA [Phonk].mp3"))
         if muted:
             pygame.mixer.music.set_volume(0)  # Sin volumen si está muteado
         else:

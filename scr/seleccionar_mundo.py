@@ -4,6 +4,12 @@ import os
 import random  # Para brillitos
 import serial # <-- MODIFICADO: Importado
 
+# --- RUTAS PARA PYINSTALLER ---
+if getattr(sys, 'frozen', False):
+    RUTA_BASE = os.path.join(sys._MEIPASS, "img")
+else:
+    RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
+
 class SeleccionMundo:
     # MODIFICADO: Añadido arduino_serial=None e idioma
     def __init__(self, ventana, ancho, alto, arduino_serial=None, idioma="es"):
@@ -43,17 +49,17 @@ class SeleccionMundo:
         self.fuente_instruccion = pygame.font.Font(None, 35) 
         self.clock = pygame.time.Clock()
 
-        self.ruta_img = os.path.join(os.path.dirname(__file__), "..", "img")
+        self.ruta_img = RUTA_BASE
 
         # Fondos
-        self.fondo_noche = pygame.image.load(os.path.join(self.ruta_img, "fondo.png")).convert()
-        self.fondo_dia = pygame.image.load(os.path.join(self.ruta_img, "fondo2.png")).convert()
+        self.fondo_noche = pygame.image.load(os.path.join(RUTA_BASE, "fondo.png")).convert()
+        self.fondo_dia = pygame.image.load(os.path.join(RUTA_BASE, "fondo2.png")).convert()
         self.fondo_noche = pygame.transform.scale(self.fondo_noche, (ancho, alto))
         self.fondo_dia = pygame.transform.scale(self.fondo_dia, (ancho, alto))
 
         # Sol y Luna
-        self.sol = pygame.transform.scale(pygame.image.load(os.path.join(self.ruta_img, "sol.png")).convert_alpha(), (120, 120))
-        self.luna = pygame.transform.scale(pygame.image.load(os.path.join(self.ruta_img, "luna.png")).convert_alpha(), (100, 100))
+        self.sol = pygame.transform.scale(pygame.image.load(os.path.join(RUTA_BASE, "sol.png")).convert_alpha(), (120, 120))
+        self.luna = pygame.transform.scale(pygame.image.load(os.path.join(RUTA_BASE, "luna.png")).convert_alpha(), (100, 100))
 
         # Colores vibrantes
         self.color_noche = (150, 200, 255)  # Azul claro vibrante

@@ -1,0 +1,19 @@
+REQUISITOS DEL SISTEMA / SYSTEM REQUIREMENTS 
+----------------------
+- Windows 7 or higher / Windows 7 o superior
+- 100 MB disk space / 100 MB de espacio en disco
+- MySQL Server (optional, for online ranking / opcional, para ranking online)
+- Arduino connected to COM4 port (optional, for physical control / opcional, para control fisico)
+
+CREDITOS / CREDITS
+--------
+Dino Company
+Musica / Music:
+- Milky Way Wishes (Kirby Super Star OST)
+- MenuMusica.mp3
+- ATLXS & DJ FKU - MONTAGEM REBOLA [Phonk]
+
+Version / Version: 4.1
+Date / Fecha: November / Noviembre 2025
+
+
