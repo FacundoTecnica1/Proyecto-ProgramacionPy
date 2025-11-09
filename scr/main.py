@@ -570,9 +570,49 @@ cactus_dia_imgs = imagenes_base["cactus_dia"]
 sonido_salto = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoSalto.mp3"))
 sonido_gameover = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoGameOver.mp3"))
 
+# --- MÚSICA DE FONDO ---
+try:
+    pygame.mixer.music.load(os.path.join("musica", "ATLXS & DJ FKU - MONTAGEM REBOLA [Phonk].mp3"))
+    pygame.mixer.music.set_volume(0.3)  # Volumen al 30% para que no sea muy fuerte
+    print("[MÚSICA] Música de fondo cargada correctamente")
+except Exception as e:
+    print(f"[ERROR MÚSICA] No se pudo cargar la música de fondo: {e}")
+
 def actualizar_volumen_sfx(volumen):
     sonido_salto.set_volume(volumen)
     sonido_gameover.set_volume(volumen)
+
+def iniciar_musica_fondo():
+    """Inicia la música de fondo en loop"""
+    try:
+        pygame.mixer.music.play(-1)  # -1 significa loop infinito
+        print("[MÚSICA] Música de fondo iniciada")
+    except Exception as e:
+        print(f"[ERROR MÚSICA] No se pudo iniciar la música: {e}")
+
+def pausar_musica_fondo():
+    """Pausa la música de fondo"""
+    try:
+        pygame.mixer.music.pause()
+        print("[MÚSICA] Música pausada")
+    except Exception as e:
+        print(f"[ERROR MÚSICA] No se pudo pausar la música: {e}")
+
+def reanudar_musica_fondo():
+    """Reanuda la música de fondo"""
+    try:
+        pygame.mixer.music.unpause()
+        print("[MÚSICA] Música reanudada")
+    except Exception as e:
+        print(f"[ERROR MÚSICA] No se pudo reanudar la música: {e}")
+
+def detener_musica_fondo():
+    """Detiene la música de fondo"""
+    try:
+        pygame.mixer.music.stop()
+        print("[MÚSICA] Música detenida")
+    except Exception as e:
+        print(f"[ERROR MÚSICA] No se pudo detener la música: {e}")
 
 # =================================================================
 # ⬇️ NUEVA FUNCIÓN: BUCLE_JUEGO ⬇️
@@ -609,6 +649,9 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
     VENTANA.fill((0, 0, 0))
     pygame.display.flip()
     pygame.time.wait(200)  # Pausa breve para transición limpia
+    
+    # --- INICIAR MÚSICA DE FONDO ÉPICA ---
+    iniciar_musica_fondo()
 
     # --- CREAR JUGADOR ---
     if personaje_elegido == "gato":
@@ -825,21 +868,35 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                 jugador.manejar_salto(event)
                 jugador.manejar_agacharse(event)
                 
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                    try:
-                        sonido_salto.play()
-                    except Exception:
-                        pass
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        try:
+                            sonido_salto.play()
+                        except Exception:
+                            pass
+                    # NUEVO: Control de música con tecla M
+                    elif event.key == pygame.K_m:
+                        if pygame.mixer.music.get_busy():
+                            pausar_musica_fondo()
+                        else:
+                            reanudar_musica_fondo()
                         
             elif event.type == pygame.KEYDOWN:
                 # MODIFICADO: K_RIGHT (D3) ahora también reinicia
                 if event.key == pygame.K_SPACE or event.key == pygame.K_RIGHT:
+                    # NUEVO: Detener sonido de Game Over al reiniciar
+                    sonido_gameover.stop()
+                    
                     jugador.reiniciar(ALTO, ALTURA_SUELO)
                     obstaculos.empty()
                     aves.empty()
                     puntaje = 0
                     velocidad_juego = 9.0 # ACTUALIZADO: Misma velocidad base
                     juego_activo = True
+                    juego_iniciado = False  # Reiniciar el control de inicio
+                    tiempo_inicio_juego = pygame.time.get_ticks() + 1000  # 1 segundo de preparación
+                    # Reanudar música cuando se reinicia
+                    reanudar_musica_fondo()
                     # Reset de efectos visuales
                     mostrar_nuevo_record = False
                     tiempo_parpadeo = 0
@@ -894,6 +951,8 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
             if pygame.sprite.spritecollide(jugador, obstaculos, False, pygame.sprite.collide_mask) or \
                pygame.sprite.spritecollide(jugador, aves, False, pygame.sprite.collide_mask):
                 juego_activo = False
+                # Pausar música durante Game Over
+                pausar_musica_fondo()
                 # Detectar nuevo record
                 record_anterior = record
                 record = max(record, int(puntaje))
@@ -988,6 +1047,9 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
         pygame.display.flip()
     
     # --- Fin del bucle `while corriendo` ---
+    # --- DETENER MÚSICA AL SALIR DEL JUEGO ---
+    detener_musica_fondo()
+    
     return record # Devuelve el record al menú principal
 
 # =================================================================
