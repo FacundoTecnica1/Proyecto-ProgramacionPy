@@ -4,6 +4,90 @@ import os
 import serial # <-- MODIFICADO: Importado
 from mostrar_ranking import MostrarRanking
 
+# --- FUNCIONES DE MÚSICA DEL MENÚ ---
+def cargar_musica_menu():
+    """Carga la música del menú"""
+    try:
+        pygame.mixer.music.load(os.path.join("musica", "MenuMusica.mp3"))
+        pygame.mixer.music.set_volume(0.4)  # Volumen al 40% para el menú
+        print("[MÚSICA MENÚ] Música del menú cargada correctamente")
+        return True
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo cargar la música del menú: {e}")
+        return False
+    try:
+        pygame.mixer.music.set_volume(0.0)
+        print("[MÚSICA MENÚ] Música muteada")
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo mutear la música: {e}")
+
+def desmutear_musica_menu(volumen):
+    """Desmutea la música del menú"""
+    try:
+        volumen_musica = volumen * 0.4  # Restaurar volumen proporcional
+        pygame.mixer.music.set_volume(volumen_musica)
+        print(f"[MÚSICA MENÚ] Música desmuteada, volumen: {volumen_musica:.2f}")
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo desmutear la música: {e}")
+
+def iniciar_musica_menu():
+    """Inicia la música del menú en loop"""
+    try:
+        pygame.mixer.music.play(-1)  # -1 significa loop infinito
+        print("[MÚSICA MENÚ] Música del menú iniciada")
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo iniciar la música del menú: {e}")
+
+def detener_musica_menu():
+    """Detiene la música del menú"""
+    try:
+        pygame.mixer.music.stop()
+        print("[MÚSICA MENÚ] Música del menú detenida")
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo detener la música del menú: {e}")
+
+def pausar_musica_menu():
+    """Pausa la música del menú"""
+    try:
+        pygame.mixer.music.pause()
+        print("[MÚSICA MENÚ] Música del menú pausada")
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo pausar la música del menú: {e}")
+
+def reanudar_musica_menu():
+    """Reanuda la música del menú de forma inteligente"""
+    try:
+        if pygame.mixer.music.get_busy():
+            # Si ya hay música, solo unpause por si estaba pausada
+            pygame.mixer.music.unpause()
+            print("[MÚSICA MENÚ] Música reanudada (unpause)")
+        else:
+            # Si no hay música, necesitamos recargar e iniciar
+            cargar_musica_menu()
+            iniciar_musica_menu()
+            print("[MÚSICA MENÚ] Música reiniciada desde cero")
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo reanudar la música del menú: {e}")
+
+def iniciar_musica_menu_suave():
+    """Inicia la música del menú solo si no está ya reproduciéndose"""
+    try:
+        if not pygame.mixer.music.get_busy():
+            pygame.mixer.music.play(-1)  # -1 significa loop infinito
+            print("[MÚSICA MENÚ] Música del menú iniciada")
+        else:
+            print("[MÚSICA MENÚ] Música ya reproduciéndose, no interrumpir")
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo iniciar la música del menú: {e}")
+
+def reanudar_musica_menu_original():
+    """Reanuda la música del menú (función original)"""
+    try:
+        pygame.mixer.music.unpause()
+        print("[MÚSICA MENÚ] Música del menú reanudada")
+    except Exception as e:
+        print(f"[ERROR MÚSICA MENÚ] No se pudo reanudar la música del menú: {e}")
+
 class Menu:
     # MODIFICADO: Añadido arduino_serial=None e idioma_inicial
     def __init__(self, pantalla, ancho, alto, record_actual, arduino_serial=None, idioma_inicial="es"):
@@ -12,6 +96,11 @@ class Menu:
         self.alto = alto
         self.record_actual = record_actual
         self.arduino_serial = arduino_serial # <-- MODIFICADO
+
+        # --- MÚSICA DEL MENÚ ---
+        self.musica_cargada = cargar_musica_menu()
+        if self.musica_cargada:
+            iniciar_musica_menu()
 
         # --- Idioma actual ---
         self.idioma = idioma_inicial # <-- MODIFICADO
@@ -147,6 +236,9 @@ class Menu:
         total_opciones = len(self.opciones) + 1  # +1 por la barra superior (configuración)
 
         while True:
+            # --- VERIFICAR CONTINUIDAD DE MÚSICA ---
+            self.verificar_musica_continua()
+            
             self.pantalla.blit(self.fondo_img, (0, 0))
 
             # --- Título (MODIFICADO) ---
@@ -281,10 +373,16 @@ class Menu:
                                 if self.muted:
                                     self.muted = False
                                     self.volumen_sfx = self.volumen_anterior
+                                    # Desmutear también la música
+                                    if self.musica_cargada:
+                                        desmutear_musica_menu(self.volumen_sfx)
                                 else:
                                     self.muted = True
                                     self.volumen_anterior = self.volumen_sfx
                                     self.volumen_sfx = 0
+                                    # Mutear también la música
+                                    if self.musica_cargada:
+                                        pygame.mixer.music.set_volume(0)
                         else:
                             # Confirmar botón principal con DERECHA (D3)
                             # MODIFICADO: Quitamos los números del inicio para la comparación
@@ -294,17 +392,102 @@ class Menu:
                             opcion_limpia = seleccion[3:]  # Saltamos "X. "
                             
                             if opcion_limpia.startswith(("Jugar", "Play")):
+                                # Pausar música del menú SOLO al ir a jugar
+                                if self.musica_cargada:
+                                    pausar_musica_menu()
                                 return "jugar"
                             elif opcion_limpia.startswith(("Elegir Mundo", "Choose World")):
+                                # NO pausar música - mantener continua en submenús
                                 return "mundo"
                             elif opcion_limpia.startswith(("Elegir Personaje", "Choose Character")):
+                                # NO pausar música - mantener continua en submenús
                                 return "personaje"
                             elif opcion_limpia.startswith(("Ver Rankings", "View Rankings")):
                                 # MODIFICADO: Pasa el arduino_serial y el idioma
                                 pantalla_ranking = MostrarRanking(self.pantalla, self.ancho, self.alto, self.arduino_serial, self.idioma)
                                 pantalla_ranking.mostrar()
                             elif opcion_limpia.startswith(("Salir", "Exit")):
+                                # Detener música antes de salir
+                                if self.musica_cargada:
+                                    detener_musica_menu()
                                 return "salir" # Devuelve "salir" para que main.py lo maneje
+                    
+                    # --- CONTROLES DE VOLUMEN ADICIONALES ---
+                    elif event.key == pygame.K_PLUS or event.key == pygame.K_EQUALS:  # Tecla + (aumentar volumen)
+                        if not self.muted and self.volumen_sfx < 1.0:
+                            self.volumen_sfx = min(1.0, self.volumen_sfx + 0.1)
+                            self.actualizar_volumen_total()
+                            print(f"[VOLUMEN] Volumen aumentado a {self.volumen_sfx:.1f}")
+                    
+                    elif event.key == pygame.K_MINUS:  # Tecla - (disminuir volumen)
+                        if not self.muted and self.volumen_sfx > 0.0:
+                            self.volumen_sfx = max(0.0, self.volumen_sfx - 0.1)
+                            self.actualizar_volumen_total()
+                            print(f"[VOLUMEN] Volumen disminuido a {self.volumen_sfx:.1f}")
+                    
+                    elif event.key == pygame.K_m:  # Tecla M (mute/unmute rápido)
+                        if self.muted:
+                            self.muted = False
+                            self.volumen_sfx = self.volumen_anterior
+                            if self.musica_cargada:
+                                desmutear_musica_menu(self.volumen_sfx)
+                            print("[VOLUMEN] Audio desmuteado")
+                        else:
+                            self.muted = True
+                            self.volumen_anterior = self.volumen_sfx
+                            self.volumen_sfx = 0
+                            if self.musica_cargada:
+                                pygame.mixer.music.set_volume(0)
+                            print("[VOLUMEN] Audio muteado")
 
             pygame.display.flip()
             clock.tick(60)
+    
+    def actualizar_volumen_total(self):
+        """Actualiza tanto el volumen de efectos como el de música"""
+        if self.musica_cargada:
+            if self.muted:
+                pygame.mixer.music.set_volume(0)
+            else:
+                # Volumen de música al 40% del volumen de efectos
+                pygame.mixer.music.set_volume(self.volumen_sfx * 0.4)
+
+    def verificar_musica_continua(self):
+        """Verifica que la música del menú siga reproduciéndose continuamente"""
+        if self.musica_cargada and not pygame.mixer.music.get_busy():
+            print("[MÚSICA MENÚ] Música interrumpida, reiniciando...")
+            cargar_musica_menu()
+            iniciar_musica_menu()
+            # Restaurar volumen después de reiniciar
+            self.actualizar_volumen_total()
+    
+    def detener_musica(self):
+        """Método para detener la música del menú desde fuera de la clase"""
+        if self.musica_cargada:
+            detener_musica_menu()
+    
+    def pausar_musica(self):
+        """Método para pausar la música del menú"""
+        if self.musica_cargada:
+            pausar_musica_menu()
+    
+    def reanudar_musica(self):
+        """Método para reanudar la música del menú (solo si está pausada)"""
+        if self.musica_cargada:
+            print("[MÚSICA MENÚ] Verificando estado de música del menú...")
+            try:
+                # Solo actuar si la música NO está reproduciéndose
+                if not pygame.mixer.music.get_busy():
+                    print("[MÚSICA MENÚ] Música no activa, recargando...")
+                    # Si no hay música reproduciéndose, recargar e iniciar
+                    cargar_musica_menu()
+                    iniciar_musica_menu()
+                else:
+                    print("[MÚSICA MENÚ] Música ya reproduciéndose, no interrumpir")
+                    # Si ya está reproduciéndose, no hacer nada para mantener continuidad
+            except Exception as e:
+                print(f"[ERROR] Problema al verificar música del menú: {e}")
+                # Intentar cargar de nuevo como fallback solo si es necesario
+                if not pygame.mixer.music.get_busy():
+                    cargar_musica_menu()
+                    iniciar_musica_menu()

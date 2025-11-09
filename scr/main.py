@@ -25,7 +25,7 @@ VENTANA = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("🌟 DINO RUN EXTREME 🌟")
 
 # --- FUNCIÓN INTRO ÉPICA ---
-def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, sonido_gameover=None):
+def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, sonido_gameover=None, muted=False):
     """Muestra una intro épica antes de comenzar el juego"""
     
     # Textos según idioma
@@ -131,8 +131,9 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
         # Reproducir sonido de inicio (una sola vez)
         if not sonido_reproducido and tiempo_actual - tiempo_inicio > 500:
             try:
-                # Intentar reproducir sonido de salto como efecto épico
-                sonido_salto.play()
+                # Intentar reproducir sonido de salto como efecto épico (solo si no está muteado)
+                if not muted and sonido_salto:
+                    sonido_salto.play()
             except:
                 pass  # Si no hay sonido, continuar
             sonido_reproducido = True
@@ -142,13 +143,17 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
             if (i < linea_actual and not sonido_linea_reproducido[i] and 
                 tiempo_actual - tiempo_inicio > 1000 + i * DELAY_LINEA):
                 try:
-                    # Sonido diferente para la última línea (más dramático)
-                    if i == len(texto_actual["lineas"]) - 1:
-                        sonido_gameover.set_volume(0.3)
-                        sonido_gameover.play()
-                    else:
-                        sonido_salto.set_volume(0.2)
-                        sonido_salto.play()
+                    # Solo reproducir sonidos si no está muteado
+                    if not muted:
+                        # Sonido diferente para la última línea (más dramático)
+                        if i == len(texto_actual["lineas"]) - 1:
+                            if sonido_gameover:
+                                sonido_gameover.set_volume(0.3)
+                                sonido_gameover.play()
+                        else:
+                            if sonido_salto:
+                                sonido_salto.set_volume(0.2)
+                                sonido_salto.play()
                 except:
                     pass
                 sonido_linea_reproducido[i] = True
@@ -570,25 +575,39 @@ cactus_dia_imgs = imagenes_base["cactus_dia"]
 sonido_salto = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoSalto.mp3"))
 sonido_gameover = pygame.mixer.Sound(os.path.join("musica", "EfectoSonidoGameOver.mp3"))
 
-# --- MÚSICA DE FONDO ---
-try:
-    pygame.mixer.music.load(os.path.join("musica", "ATLXS & DJ FKU - MONTAGEM REBOLA [Phonk].mp3"))
-    pygame.mixer.music.set_volume(0.3)  # Volumen al 30% para que no sea muy fuerte
-    print("[MÚSICA] Música de fondo cargada correctamente")
-except Exception as e:
-    print(f"[ERROR MÚSICA] No se pudo cargar la música de fondo: {e}")
-
 def actualizar_volumen_sfx(volumen):
+    """Actualiza el volumen de efectos de sonido y música"""
     sonido_salto.set_volume(volumen)
     sonido_gameover.set_volume(volumen)
-
-def iniciar_musica_fondo():
-    """Inicia la música de fondo en loop"""
+    
+    # También actualizar el volumen de la música del juego si está reproduciéndose
     try:
-        pygame.mixer.music.play(-1)  # -1 significa loop infinito
-        print("[MÚSICA] Música de fondo iniciada")
+        if pygame.mixer.music.get_busy():
+            # Volumen de música al 30% del volumen de efectos
+            pygame.mixer.music.set_volume(volumen * 0.3)
     except Exception as e:
-        print(f"[ERROR MÚSICA] No se pudo iniciar la música: {e}")
+        print(f"[ERROR] No se pudo actualizar volumen de música: {e}")
+    # También actualizar volumen de la música del juego si está sonando
+    try:
+        if pygame.mixer.music.get_busy():
+            # Volumen de música al 30% del volumen de efectos
+            pygame.mixer.music.set_volume(volumen * 0.3)
+    except Exception as e:
+        pass  # No importa si no hay música cargada
+
+def iniciar_musica_fondo(muted=False):
+    """Inicia la música de fondo del juego en loop"""
+    try:
+        # Recargar la música del juego para asegurar que es la correcta
+        pygame.mixer.music.load(os.path.join("musica", "ATLXS & DJ FKU - MONTAGEM REBOLA [Phonk].mp3"))
+        if muted:
+            pygame.mixer.music.set_volume(0)  # Sin volumen si está muteado
+        else:
+            pygame.mixer.music.set_volume(0.3)  # Volumen al 30% para el juego
+        pygame.mixer.music.play(-1)  # -1 significa loop infinito
+        print(f"[MÚSICA JUEGO] Música phonk del juego iniciada (muted={muted})")
+    except Exception as e:
+        print(f"[ERROR MÚSICA JUEGO] No se pudo iniciar la música del juego: {e}")
 
 def pausar_musica_fondo():
     """Pausa la música de fondo"""
@@ -618,7 +637,7 @@ def detener_musica_fondo():
 # ⬇️ NUEVA FUNCIÓN: BUCLE_JUEGO ⬇️
 # =================================================================
 # MODIFICADO: Añadido 'idioma'
-def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, volumen_sfx, record_previo, idioma="es"):
+def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, volumen_sfx, record_previo, idioma="es", muted=False):
     
     # ⬇️⬇️⬇️ ESTA ES LA LÍNEA AÑADIDA ⬇️⬇️⬇️
     global arduino_serial 
@@ -640,7 +659,7 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
 
 
     # --- MOSTRAR INTRO ÉPICA ---
-    mostrar_intro_epica(VENTANA, ANCHO, ALTO, idioma_actual, sonido_salto, sonido_gameover)
+    mostrar_intro_epica(VENTANA, ANCHO, ALTO, idioma, sonido_salto, sonido_gameover, muted)
     
     # --- PAUSA PARA ASEGURAR QUE LA INTRO TERMINE COMPLETAMENTE ---
     pygame.time.wait(500)  # Pausa adicional de 0.5 segundos
@@ -650,8 +669,16 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
     pygame.display.flip()
     pygame.time.wait(200)  # Pausa breve para transición limpia
     
-    # --- INICIAR MÚSICA DE FONDO ÉPICA ---
-    iniciar_musica_fondo()
+    # --- DETENER TODA LA MÚSICA ANTERIOR ---
+    try:
+        pygame.mixer.music.stop()  # Detener cualquier música previa
+        pygame.mixer.stop()  # Detener todos los sonidos
+        pygame.time.wait(100)  # Pequeña pausa para limpiar el buffer de audio
+    except Exception as e:
+        print(f"[DEBUG] Error al limpiar audio: {e}")
+    
+    # --- INICIAR MÚSICA DE FONDO ÉPICA DEL JUEGO ---
+    iniciar_musica_fondo(muted)
 
     # --- CREAR JUGADOR ---
     if personaje_elegido == "gato":
@@ -1047,8 +1074,11 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
         pygame.display.flip()
     
     # --- Fin del bucle `while corriendo` ---
-    # --- DETENER MÚSICA AL SALIR DEL JUEGO ---
-    detener_musica_fondo()
+    # --- LIMPIAR TODO EL AUDIO AL SALIR DEL JUEGO ---
+    detener_musica_fondo()  # Detener música del juego
+    sonido_gameover.stop()  # Detener sonido de Game Over
+    sonido_salto.stop()     # Detener cualquier sonido de salto
+    print("[AUDIO] Limpieza de audio completada al salir del juego")
     
     return record # Devuelve el record al menú principal
 
@@ -1080,7 +1110,19 @@ while True:
     if opcion_menu == "jugar":
         # Llamar a la función del juego con la configuración actual
         # MODIFICADO: Se pasa 'idioma_actual'
-        record_actual = bucle_juego(personaje_actual, mundo_actual, nombre_jugador, id_usuario, menu.volumen_sfx, record_actual, idioma_actual)
+        record_actual = bucle_juego(personaje_actual, mundo_actual, nombre_jugador, id_usuario, menu.volumen_sfx, record_actual, idioma_actual, menu.muted)
+        
+        # --- LIMPIAR Y REACTIVAR MÚSICA DEL MENÚ AL VOLVER ---
+        print("[AUDIO] Regresando al menú, limpiando audio...")
+        # Asegurar que no queden sonidos del juego
+        try:
+            pygame.mixer.stop()  # Detener todos los sonidos (pero no la música)
+            pygame.time.wait(50)  # Pausa más corta para evitar interrupciones
+        except Exception as e:
+            print(f"[AUDIO] Error al limpiar: {e}")
+        
+        # Verificar y reactivar música del menú solo si es necesario
+        menu.reanudar_musica()
         # Actualizar volumen (por si se cambió en el menú)
         actualizar_volumen_sfx(menu.volumen_sfx)
     
@@ -1090,6 +1132,7 @@ while True:
         mundo_seleccionado = selector_mundo.mostrar()
         if mundo_seleccionado in ("noche", "dia"):
             mundo_actual = mundo_seleccionado # Actualizar estado global
+        # NO reanudar música - la música nunca se pausó en los submenús
             
     elif opcion_menu == "personaje":
         # MODIFICADO: Se pasa el idioma
@@ -1097,8 +1140,11 @@ while True:
         personaje_seleccionado = selector_personaje.mostrar()
         if personaje_seleccionado in ("perro", "gato"):
             personaje_actual = personaje_seleccionado # Actualizar estado global
+        # NO reanudar música - la música nunca se pausó en los submenús
 
     elif opcion_menu == "salir":
+        # Detener música del menú antes de salir
+        menu.detener_musica()
         if arduino_serial and arduino_serial.is_open:
             arduino_serial.close()
         pygame.quit()
