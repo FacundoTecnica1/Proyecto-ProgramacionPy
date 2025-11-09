@@ -852,15 +852,16 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
             tiempo_actual = pygame.time.get_ticks()
             # Parpadear cada 500ms
             if (tiempo_actual - tiempo_parpadeo) % 1000 < 500:
-                mostrar_texto(txt_hud['nuevo_record'], ANCHO // 2, game_over_rect.bottom + 70, 
+                # Mostrar el aviso de nuevo record más abajo para evitar solaparlo con las instrucciones
+                mostrar_texto(txt_hud['nuevo_record'], ANCHO // 2, game_over_rect.bottom + 140, 
                              (255, 100, 100), VENTANA, tam=42, centrado=True, 
                              sombra=True, fuente_personalizada=fuente_gameover)
-        
-        # Textos de instrucciones con mejor estilo
-        mostrar_texto(txt_go["reiniciar"], ANCHO // 2, game_over_rect.bottom + 120, 
+
+        # Textos de instrucciones con mejor estilo (subidos para que no se corten en pantallas pequeñas)
+        mostrar_texto(txt_go["reiniciar"], ANCHO // 2, game_over_rect.bottom + 60, 
                      (200, 255, 200), VENTANA, tam=36, centrado=True, 
                      sombra=True, fuente_personalizada=fuente_gameover)
-        mostrar_texto(txt_go["menu"], ANCHO // 2, game_over_rect.bottom + 160, 
+        mostrar_texto(txt_go["menu"], ANCHO // 2, game_over_rect.bottom + 100, 
                      (255, 200, 200), VENTANA, tam=36, centrado=True, 
                      sombra=True, fuente_personalizada=fuente_gameover)
 
