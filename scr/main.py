@@ -3,6 +3,7 @@ import random
 import sys
 import os
 import time  
+import math  # <-- AGREGADO: Para funciones trigonométricas
 import serial # <-- MODIFICADO: Importado
 import mysql.connector # <-- MODIFICADO: Importado para guardar puntaje
 
@@ -21,7 +22,295 @@ pygame.mixer.init()
 ANCHO, ALTO = 850, 670
 FPS = 60
 VENTANA = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Dino")
+pygame.display.set_caption("🌟 DINO RUN EXTREME 🌟")
+
+# --- FUNCIÓN INTRO ÉPICA ---
+def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, sonido_gameover=None):
+    """Muestra una intro épica antes de comenzar el juego"""
+    
+    # Textos según idioma
+    textos = {
+        "es": {
+            "titulo": "🌟 DINO RUN EXTREME 🌟",
+            "subtitulo": "¡PREPÁRATE PARA LA AVENTURA!",
+            "lineas": [
+                "Un dinosaurio...",
+                "Un mundo peligroso...", 
+                "Obstáculos infinitos...",
+                "¿Hasta dónde llegarás?",
+                "¡LA SUPERVIVENCIA COMIENZA AHORA!"
+            ],
+            "presiona": "PRESIONA CUALQUIER TECLA PARA CONTINUAR"
+        },
+        "en": {
+            "titulo": "🌟 DINO RUN EXTREME 🌟",
+            "subtitulo": "GET READY FOR THE ADVENTURE!",
+            "lineas": [
+                "One dinosaur...",
+                "A dangerous world...",
+                "Infinite obstacles...", 
+                "How far will you go?",
+                "SURVIVAL STARTS NOW!"
+            ],
+            "presiona": "PRESS ANY KEY TO CONTINUE"
+        }
+    }
+    
+    texto_actual = textos.get(idioma, textos["es"])
+    
+    # Fuentes
+    try:
+        fuente_titulo = pygame.font.Font(None, 80)
+        fuente_subtitulo = pygame.font.Font(None, 50)
+        fuente_linea = pygame.font.Font(None, 40)
+        fuente_continuar = pygame.font.Font(None, 35)
+    except:
+        # Fallback si hay problemas con fuentes
+        fuente_titulo = pygame.font.Font(None, 60)
+        fuente_subtitulo = pygame.font.Font(None, 40)
+        fuente_linea = pygame.font.Font(None, 30)
+        fuente_continuar = pygame.font.Font(None, 25)
+    
+    # Colores épicos
+    color_fondo = (10, 10, 30)  # Azul muy oscuro
+    color_titulo = (255, 215, 0)  # Dorado
+    color_subtitulo = (255, 100, 100)  # Rojo brillante
+    color_linea = (255, 255, 255)  # Blanco
+    color_continuar = (100, 255, 100)  # Verde brillante
+    
+    reloj = pygame.time.Clock()
+    tiempo_inicio = pygame.time.get_ticks()
+    
+    # Estado de la animación
+    linea_actual = 0
+    tiempo_ultima_linea = tiempo_inicio
+    DELAY_LINEA = 1200  # 1.2 segundos entre líneas
+    
+    # Efectos de partículas épicas
+    particulas_intro = []
+    
+    class ParticulaIntro:
+        def __init__(self):
+            self.x = random.randint(0, ancho)
+            self.y = random.randint(0, alto)
+            self.vel_x = random.uniform(-2, 2)
+            self.vel_y = random.uniform(-2, 2)
+            self.size = random.randint(1, 4)
+            self.color = random.choice([
+                (255, 215, 0),  # Dorado
+                (255, 255, 255),  # Blanco
+                (255, 100, 100),  # Rojo
+                (100, 255, 255)   # Cian
+            ])
+            self.alpha = random.randint(100, 255)
+            
+        def update(self):
+            self.x += self.vel_x
+            self.y += self.vel_y
+            if self.x < 0 or self.x > ancho:
+                self.vel_x *= -1
+            if self.y < 0 or self.y > alto:
+                self.vel_y *= -1
+                
+        def draw(self, surface):
+            pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.size)
+    
+    # Crear partículas iniciales
+    for _ in range(50):
+        particulas_intro.append(ParticulaIntro())
+    
+    # Bucle de la intro
+    esperando = True
+    sonido_reproducido = False
+    sonido_linea_reproducido = [False] * len(texto_actual["lineas"])
+    
+    while esperando:
+        tiempo_actual = pygame.time.get_ticks()
+        dt = reloj.tick(60) / 1000.0
+        
+        # Reproducir sonido de inicio (una sola vez)
+        if not sonido_reproducido and tiempo_actual - tiempo_inicio > 500:
+            try:
+                # Intentar reproducir sonido de salto como efecto épico
+                sonido_salto.play()
+            except:
+                pass  # Si no hay sonido, continuar
+            sonido_reproducido = True
+        
+        # Reproducir sonidos para cada línea nueva
+        for i in range(len(texto_actual["lineas"])):
+            if (i < linea_actual and not sonido_linea_reproducido[i] and 
+                tiempo_actual - tiempo_inicio > 1000 + i * DELAY_LINEA):
+                try:
+                    # Sonido diferente para la última línea (más dramático)
+                    if i == len(texto_actual["lineas"]) - 1:
+                        sonido_gameover.set_volume(0.3)
+                        sonido_gameover.play()
+                    else:
+                        sonido_salto.set_volume(0.2)
+                        sonido_salto.play()
+                except:
+                    pass
+                sonido_linea_reproducido[i] = True
+        
+        # Eventos
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif evento.type == pygame.KEYDOWN or evento.type == pygame.MOUSEBUTTONDOWN:
+                if tiempo_actual - tiempo_inicio > 2000:  # Al menos 2 segundos de intro
+                    esperando = False
+        
+        # Actualizar partículas
+        for particula in particulas_intro:
+            particula.update()
+            
+        # Agregar nuevas partículas ocasionalmente
+        if random.random() < 0.1:
+            particulas_intro.append(ParticulaIntro())
+            
+        # Limpiar partículas viejas
+        if len(particulas_intro) > 80:
+            particulas_intro.pop(0)
+        
+        # Avanzar líneas de texto
+        if tiempo_actual - tiempo_ultima_linea > DELAY_LINEA and linea_actual < len(texto_actual["lineas"]):
+            linea_actual += 1
+            tiempo_ultima_linea = tiempo_actual
+        
+        # Dibujar todo
+        ventana.fill(color_fondo)
+        
+        # Efecto de estrellas brillantes en el fondo
+        for _ in range(20):
+            x_estrella = random.randint(0, ancho)
+            y_estrella = random.randint(0, alto//3)
+            if random.random() < 0.3:  # 30% chance cada frame
+                brillo_estrella = random.randint(100, 255)
+                pygame.draw.circle(ventana, (brillo_estrella, brillo_estrella, brillo_estrella), 
+                                 (x_estrella, y_estrella), random.randint(1, 3))
+        
+        # Dibujar partículas de fondo
+        for particula in particulas_intro:
+            particula.draw(ventana)
+        
+        # Efecto de gradiente en el fondo
+        for y in range(0, alto, 5):
+            alpha = int(50 * (1 - y / alto))
+            color_gradiente = (alpha, alpha, alpha * 2)
+            pygame.draw.line(ventana, color_gradiente, (0, y), (ancho, y))
+        
+        # Efecto de rayos épicos desde el centro
+        if tiempo_actual - tiempo_inicio > 1000:
+            centro_x, centro_y = ancho // 2, 120
+            for i in range(8):
+                angulo = (tiempo_actual * 0.002 + i * 45) % 360
+                radian = math.radians(angulo)
+                end_x = centro_x + 200 * math.cos(radian)
+                end_y = centro_y + 200 * math.sin(radian)
+                
+                # Crear gradiente de línea
+                for j in range(10):
+                    alpha = 255 - j * 25
+                    if alpha > 0:
+                        color_rayo = (255, 215, 0, alpha)
+                        offset = j * 2
+                        pygame.draw.line(ventana, color_rayo[:3], 
+                                       (centro_x, centro_y), 
+                                       (end_x - offset, end_y - offset), 3)
+        
+        # Título principal con efecto de brillo
+        tiempo_brillo = tiempo_actual * 0.003
+        brillo_offset = int(10 * abs(math.cos(tiempo_brillo)))
+        
+        # Sombra del título
+        titulo_sombra = fuente_titulo.render(texto_actual["titulo"], True, (50, 50, 50))
+        titulo_rect_sombra = titulo_sombra.get_rect(center=(ancho//2 + 3, 120 + 3))
+        ventana.blit(titulo_sombra, titulo_rect_sombra)
+        
+        # Título principal
+        titulo_surf = fuente_titulo.render(texto_actual["titulo"], True, 
+                                         (min(255, color_titulo[0] + brillo_offset),
+                                          min(255, color_titulo[1] + brillo_offset),
+                                          color_titulo[2]))
+        titulo_rect = titulo_surf.get_rect(center=(ancho//2, 120))
+        ventana.blit(titulo_surf, titulo_rect)
+        
+        # Subtítulo
+        if tiempo_actual - tiempo_inicio > 500:
+            subtitulo_surf = fuente_subtitulo.render(texto_actual["subtitulo"], True, color_subtitulo)
+            subtitulo_rect = subtitulo_surf.get_rect(center=(ancho//2, 180))
+            ventana.blit(subtitulo_surf, subtitulo_rect)
+        
+        # Líneas de texto que aparecen progresivamente
+        y_linea = 250
+        for i in range(min(linea_actual, len(texto_actual["lineas"]))):
+            linea = texto_actual["lineas"][i]
+            
+            # Efecto de aparición gradual
+            tiempo_desde_aparicion = tiempo_actual - (tiempo_inicio + 1000 + i * DELAY_LINEA)
+            if tiempo_desde_aparicion > 0:
+                alpha_texto = min(255, tiempo_desde_aparicion * 0.5)
+                
+                # Crear superficie con alpha
+                linea_surf = fuente_linea.render(linea, True, color_linea)
+                linea_surf.set_alpha(alpha_texto)
+                linea_rect = linea_surf.get_rect(center=(ancho//2, y_linea))
+                ventana.blit(linea_surf, linea_rect)
+                
+            y_linea += 60
+        
+        # Texto de continuar (parpadeante)
+        if tiempo_actual - tiempo_inicio > 5000:  # Aparece después de 5 segundos
+            brillo_continuar = abs(math.sin(tiempo_actual * 0.005))
+            alpha_continuar = int(100 + 155 * brillo_continuar)
+            
+            continuar_surf = fuente_continuar.render(texto_actual["presiona"], True, color_continuar)
+            continuar_surf.set_alpha(alpha_continuar)
+            continuar_rect = continuar_surf.get_rect(center=(ancho//2, alto - 50))
+            ventana.blit(continuar_surf, continuar_rect)
+        
+        pygame.display.flip()
+    
+    # Efecto de flash épico antes de iniciar el juego
+    for flash in range(3):
+        # Flash blanco
+        ventana.fill((255, 255, 255))
+        pygame.display.flip()
+        pygame.time.wait(100)
+        
+        # Vuelta a oscuro
+        ventana.fill((0, 0, 0))
+        pygame.display.flip()
+        pygame.time.wait(100)
+    
+    # Transición de salida épica con sonido
+    try:
+        sonido_salto.set_volume(0.4)
+        sonido_salto.play()
+    except:
+        pass
+        
+    for i in range(30):
+        # Crear efecto de zoom out
+        color_intensity = int(255 * (i / 30))
+        ventana.fill((color_intensity//3, color_intensity//3, color_intensity))
+        
+        # Agregar texto final épico
+        if i > 15:
+            fuente_final = pygame.font.Font(None, 60)
+            if idioma == "es":
+                texto_final = "¡COMIENZA LA AVENTURA!"
+            else:
+                texto_final = "THE ADVENTURE BEGINS!"
+            
+            surf_final = fuente_final.render(texto_final, True, (255, 255, 0))
+            rect_final = surf_final.get_rect(center=(ancho//2, alto//2))
+            ventana.blit(surf_final, rect_final)
+        
+        pygame.display.flip()
+        pygame.time.wait(50)
 
 # --- RUTA DE IMÁGENES (MOVIDA ARRIBA) ---
 RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
@@ -309,6 +598,9 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
     cactus_imgs = escalar_lista(cactus_set, 110, 140)
     cactus_small = escalar_lista(cactus_set, 82, 105)
 
+
+    # --- MOSTRAR INTRO ÉPICA ---
+    mostrar_intro_epica(VENTANA, ANCHO, ALTO, idioma_actual, sonido_salto, sonido_gameover)
 
     # --- CREAR JUGADOR ---
     if personaje_elegido == "gato":
