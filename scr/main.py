@@ -601,6 +601,14 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
 
     # --- MOSTRAR INTRO ÉPICA ---
     mostrar_intro_epica(VENTANA, ANCHO, ALTO, idioma_actual, sonido_salto, sonido_gameover)
+    
+    # --- PAUSA PARA ASEGURAR QUE LA INTRO TERMINE COMPLETAMENTE ---
+    pygame.time.wait(500)  # Pausa adicional de 0.5 segundos
+    
+    # --- LIMPIAR PANTALLA ANTES DE INICIAR EL JUEGO ---
+    VENTANA.fill((0, 0, 0))
+    pygame.display.flip()
+    pygame.time.wait(200)  # Pausa breve para transición limpia
 
     # --- CREAR JUGADOR ---
     if personaje_elegido == "gato":
@@ -625,6 +633,8 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
     puntaje = 0
     record = record_previo # Cargar el record anterior
     juego_activo = True
+    juego_iniciado = False  # NUEVO: Control para iniciar después de la intro
+    tiempo_inicio_juego = pygame.time.get_ticks() + 1000  # 1 segundo después de cargar
     velocidad_juego = 9.0 # AUMENTADO: Velocidad base más rápida (era 7.5)
     reloj = pygame.time.Clock()
 
@@ -800,7 +810,14 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                 pygame.quit()
                 sys.exit()
 
-            if juego_activo:
+            # --- VERIFICAR SI EL JUEGO PUEDE INICIARSE ---
+            tiempo_actual_check = pygame.time.get_ticks()
+            if not juego_iniciado and tiempo_actual_check >= tiempo_inicio_juego:
+                juego_iniciado = True
+                # Limpiar cualquier evento acumulado durante la intro
+                pygame.event.clear()
+
+            if juego_activo and juego_iniciado:  # MODIFICADO: Solo procesar eventos si el juego ya empezó
                 # SALTO DINÁMICO: Ahora manejar_salto procesa directamente K_UP y K_SPACE
                 # (No necesitamos conversión automática)
 
@@ -835,7 +852,7 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                     corriendo = False # Termina el bucle de juego
                     # El record se devuelve al final de la función
 
-        if juego_activo:
+        if juego_activo and juego_iniciado:  # MODIFICADO: Solo ejecutar lógica del juego si ya empezó
             # MODIFICADO: Se quitó toda la lógica de DASH
             fondo.actualizar(velocidad_juego)
             jugador.actualizar(dt)
@@ -935,6 +952,34 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
 
         # HUD mejorado
         dibujar_hud_mejorado()
+        
+        # --- MENSAJE DE PREPARACIÓN ---
+        if not juego_iniciado:
+            tiempo_restante = max(0, (tiempo_inicio_juego - pygame.time.get_ticks()) / 1000.0)
+            if tiempo_restante > 0:
+                # Mensaje de preparación
+                if idioma_actual == "es":
+                    mensaje_prep = "¡PREPÁRATE!"
+                    mensaje_tiempo = f"Iniciando en {tiempo_restante:.1f}s"
+                else:
+                    mensaje_prep = "GET READY!"
+                    mensaje_tiempo = f"Starting in {tiempo_restante:.1f}s"
+                
+                # Fondo semi-transparente
+                overlay = pygame.Surface((ANCHO, ALTO))
+                overlay.set_alpha(100)
+                overlay.fill((0, 0, 0))
+                VENTANA.blit(overlay, (0, 0))
+                
+                # Texto principal
+                mostrar_texto(mensaje_prep, ANCHO // 2, ALTO // 2 - 30, 
+                            (255, 215, 0), VENTANA, tam=60, centrado=True, 
+                            sombra=True, fuente_personalizada=fuente_hud)
+                
+                # Contador
+                mostrar_texto(mensaje_tiempo, ANCHO // 2, ALTO // 2 + 30, 
+                            (255, 255, 255), VENTANA, tam=40, centrado=True, 
+                            sombra=True, fuente_personalizada=fuente_hud)
 
         if not juego_activo:
             # Game over mejorado
