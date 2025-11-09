@@ -9,7 +9,7 @@ import mysql.connector # <-- MODIFICADO: Importado para guardar puntaje
 # Importar todas las clases necesarias
 from game_objects import Perro, Obstaculo, Fondo, Ave
 from seleccion_personaje import SeleccionPersonaje
-from utils import mostrar_texto
+from utils import mostrar_texto, mostrar_texto_con_fondo, crear_fuente_titulo, crear_fuente_hud, crear_fuente_gameover
 from menu import Menu
 from seleccionar_mundo import SeleccionMundo
 from elegir_nombre import ElegirNombre
@@ -322,6 +322,14 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
     obstaculos = pygame.sprite.Group()
     aves = pygame.sprite.Group()
 
+    # --- FUENTES PERSONALIZADAS PARA UI MEJORADA ---
+    fuente_hud = crear_fuente_hud()
+    fuente_gameover = crear_fuente_gameover()
+    
+    # --- VARIABLES PARA EFECTOS VISUALES ---
+    tiempo_parpadeo = 0
+    mostrar_nuevo_record = False
+
     puntaje = 0
     record = record_previo # Cargar el record anterior
     juego_activo = True
@@ -340,6 +348,94 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
 
     # --- Aplicar volumen ---
     actualizar_volumen_sfx(volumen_sfx)
+
+    # --- FUNCIÓN PARA DIBUJAR HUD MEJORADO ---
+    def dibujar_hud_mejorado():
+        # Colores dinámicos basados en velocidad
+        intensidad_velocidad = min(1.0, (velocidad_juego - 9.0) / 6.0)  # 0.0 a 1.0
+        color_puntos = (255, int(255 - intensidad_velocidad * 100), int(255 - intensidad_velocidad * 100))
+        
+        # Puntos con fondo y estilo mejorado
+        texto_puntos = f"{txt_hud['puntos']}: {int(puntaje)}"
+        mostrar_texto_con_fondo(texto_puntos, 15, 15, color_puntos, (30, 30, 50), VENTANA, 
+                               tam=32, centrado=False, padding=12)
+        
+        # Indicador de velocidad (pequeño)
+        if velocidad_juego > 9.5:  # Solo mostrar cuando la velocidad aumenta
+            velocidad_display = f"{txt_hud['velocidad']}: {velocidad_juego:.1f}x"
+            color_velocidad = (255, int(255 - intensidad_velocidad * 150), 100)
+            mostrar_texto(velocidad_display, 15, 55, color_velocidad, VENTANA, 
+                         tam=24, sombra=True, fuente_personalizada=fuente_hud)
+        
+        # Record en la esquina superior derecha
+        texto_record = f"{txt_hud['record']}: {record}"
+        # Calcular posición desde la derecha usando una fuente temporal
+        try:
+            superficie_temp = fuente_hud.render(texto_record, True, BLANCO)
+            ancho_texto = superficie_temp.get_width()
+        except:
+            # Fallback si hay error con la fuente
+            ancho_texto = len(texto_record) * 20  # Estimación
+        
+        color_record = (255, 215, 0) if record > 0 else (200, 200, 200)
+        mostrar_texto_con_fondo(texto_record, ANCHO - ancho_texto - 15, 15, 
+                               color_record, (50, 30, 30), VENTANA, 
+                               tam=32, centrado=False, padding=12)
+    
+    # --- FUNCIÓN PARA DIBUJAR GAME OVER MEJORADO ---
+    def dibujar_game_over_mejorado():
+        # Overlay semitransparente
+        overlay = pygame.Surface((ANCHO, ALTO))
+        overlay.set_alpha(150)
+        overlay.fill((0, 0, 0))
+        VENTANA.blit(overlay, (0, 0))
+        
+        # Imagen de game over
+        game_over_surf = imagenes_base["game_over"]
+        game_over_rect = game_over_surf.get_rect(center=(ANCHO // 2, ALTO // 2 - 80))
+        VENTANA.blit(game_over_surf, game_over_rect)
+        
+        # Puntuación final con estilo
+        texto_final = f"{txt_hud['puntuacion_final']}: {int(puntaje)}"
+        mostrar_texto(texto_final, ANCHO // 2, game_over_rect.bottom + 30, 
+                     (255, 255, 100), VENTANA, tam=38, centrado=True, 
+                     sombra=True, fuente_personalizada=fuente_gameover)
+        
+        # Nuevo record con efecto de parpadeo
+        if mostrar_nuevo_record:
+            tiempo_actual = pygame.time.get_ticks()
+            # Parpadear cada 500ms
+            if (tiempo_actual - tiempo_parpadeo) % 1000 < 500:
+                mostrar_texto(txt_hud['nuevo_record'], ANCHO // 2, game_over_rect.bottom + 70, 
+                             (255, 100, 100), VENTANA, tam=42, centrado=True, 
+                             sombra=True, fuente_personalizada=fuente_gameover)
+        
+        # Textos de instrucciones con mejor estilo
+        mostrar_texto(txt_go["reiniciar"], ANCHO // 2, game_over_rect.bottom + 120, 
+                     (200, 255, 200), VENTANA, tam=36, centrado=True, 
+                     sombra=True, fuente_personalizada=fuente_gameover)
+        mostrar_texto(txt_go["menu"], ANCHO // 2, game_over_rect.bottom + 160, 
+                     (255, 200, 200), VENTANA, tam=36, centrado=True, 
+                     sombra=True, fuente_personalizada=fuente_gameover)
+
+    # --- Textos Multi-idioma (NUEVO) ---
+    textos_hud = {
+        "es": {
+            "puntos": "Puntos",
+            "record": "Record",
+            "velocidad": "Velocidad",
+            "puntuacion_final": "Puntuación Final",
+            "nuevo_record": "¡NUEVO RECORD!"
+        },
+        "en": {
+            "puntos": "Points",
+            "record": "High Score", 
+            "velocidad": "Speed",
+            "puntuacion_final": "Final Score",
+            "nuevo_record": "NEW RECORD!"
+        }
+    }
+    txt_hud = textos_hud.get(idioma, textos_hud["es"])
 
     # --- Textos Game Over (NUEVO) ---
     textos_gameover = {
@@ -413,11 +509,8 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                 sys.exit()
 
             if juego_activo:
-                # MODIFICADO: K_UP (D2) ahora es salto
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_UP:
-                    # Simulamos un evento de K_SPACE para que "manejar_salto" funcione
-                    event_salto = pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE)
-                    pygame.event.post(event_salto)
+                # SALTO DINÁMICO: Ahora manejar_salto procesa directamente K_UP y K_SPACE
+                # (No necesitamos conversión automática)
 
                 # MODIFICADO: Se restauró la llamada a manejar_agacharse
                 jugador.manejar_salto(event)
@@ -438,6 +531,9 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                     puntaje = 0
                     velocidad_juego = 9.0 # ACTUALIZADO: Misma velocidad base
                     juego_activo = True
+                    # Reset de efectos visuales
+                    mostrar_nuevo_record = False
+                    tiempo_parpadeo = 0
                     tiempo_ultimo_obstaculo = pygame.time.get_ticks()
                     tiempo_ultima_ave = pygame.time.get_ticks()
                     intervalo_cactus = random.randint(2000, 4000) # ACTUALIZADO: Mismo rango inicial
@@ -489,7 +585,11 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
             if pygame.sprite.spritecollide(jugador, obstaculos, False, pygame.sprite.collide_mask) or \
                pygame.sprite.spritecollide(jugador, aves, False, pygame.sprite.collide_mask):
                 juego_activo = False
+                # Detectar nuevo record
+                record_anterior = record
                 record = max(record, int(puntaje))
+                mostrar_nuevo_record = (int(puntaje) > record_anterior and int(puntaje) > 0)
+                tiempo_parpadeo = pygame.time.get_ticks()
                 sonido_gameover.play()
 
                 # === BLOQUE: GUARDAR/ACTUALIZAR PUNTAJE ===
@@ -541,17 +641,12 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
 
         VENTANA.blit(astro_img, astro_img.get_rect(topright=(ANCHO - 20, 20)))
 
-        mostrar_texto(f"Puntos: {int(puntaje)}", 10, 10, BLANCO, VENTANA)
-        mostrar_texto(f"Record: {record}", ANCHO - 150, 10, BLANCO, VENTANA)
+        # HUD mejorado
+        dibujar_hud_mejorado()
 
         if not juego_activo:
-            game_over_surf = imagenes_base["game_over"]
-            game_over_rect = game_over_surf.get_rect(center=(ANCHO // 2, ALTO // 2 - 50)) # Subir un poco
-            VENTANA.blit(game_over_surf, game_over_rect)
-            
-            # MODIFICADO: Textos multi-idioma
-            mostrar_texto(txt_go["reiniciar"], ANCHO // 2, game_over_rect.bottom + 40, BLANCO, VENTANA, centrado=True)
-            mostrar_texto(txt_go["menu"], ANCHO // 2, game_over_rect.bottom + 90, BLANCO, VENTANA, centrado=True)
+            # Game over mejorado
+            dibujar_game_over_mejorado()
 
         pygame.display.flip()
     

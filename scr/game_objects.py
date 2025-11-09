@@ -73,6 +73,13 @@ class Perro(pygame.sprite.Sprite):
         # Agachado en aire (flotar)
         self.air_crouch = False
         
+        # --- SALTO DINÁMICO ---
+        self.jump_pressed = False  # Si cualquier tecla de salto está presionada
+        self.jump_power = 0        # Potencia acumulada del salto
+        self.max_jump_power = 30 # Máxima potencia del salto
+        self.min_jump_power = 15   # Mínima potencia del salto
+        self.jump_charge_rate = 1.5 # Velocidad de carga del salto por frame
+        
         # Guardar ancho para limitar dash
         self.ancho = ancho
         # Guardar referencias originales para restaurar
@@ -82,17 +89,23 @@ class Perro(pygame.sprite.Sprite):
         # Guardar gravedad original para ajustar caída en el aire
         self._original_gravedad = self.gravedad
 
-    # --- MODIFICADO: manejar_salto (Se quitó el Dash) ---
+    # --- MODIFICADO: manejar_salto - SALTO DINÁMICO ---
     def manejar_salto(self, event):
-        # Manejar presionar/soltar SPACE para salto
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-            self.space_pressed = True
-            # comportamiento normal de salto (solo si estamos en suelo)
-            if self.en_suelo:
-                self.vel_y = -22 # AUMENTADO: Salto más alto y pronunciado (era -20)
+        # Manejar presionar/soltar SPACE y UP para salto dinámico
+        if event.type == pygame.KEYDOWN and (event.key == pygame.K_SPACE or event.key == pygame.K_UP):
+            if self.en_suelo and not self.jump_pressed:
+                # Iniciar carga del salto
+                self.jump_pressed = True
+                self.jump_power = self.min_jump_power
+                # No ejecutar el salto todavía, solo iniciar la carga
+                
+        elif event.type == pygame.KEYUP and (event.key == pygame.K_SPACE or event.key == pygame.K_UP):
+            if self.jump_pressed and self.en_suelo:
+                # Ejecutar el salto con la potencia acumulada
+                self.vel_y = -self.jump_power
                 self.en_suelo = False
-        elif event.type == pygame.KEYUP and event.key == pygame.K_SPACE:
-            self.space_pressed = False
+                self.jump_pressed = False
+                self.jump_power = 0
 
     # --- MODIFICADO: manejar_agacharse (Se quitó el Dash) ---
     def manejar_agacharse(self, event):
@@ -190,6 +203,12 @@ class Perro(pygame.sprite.Sprite):
     # --- MODIFICADO: actualizar (Se quitó el Dash) ---
     def actualizar(self, dt):
         
+        # --- SALTO DINÁMICO: Cargar potencia mientras se mantiene presionada la tecla ---
+        if self.jump_pressed and self.en_suelo:
+            self.jump_power += self.jump_charge_rate
+            if self.jump_power > self.max_jump_power:
+                self.jump_power = self.max_jump_power
+        
         # Aplicar gravedad y movimiento vertical normal
         self.vel_y += self.gravedad
 
@@ -243,6 +262,39 @@ class Perro(pygame.sprite.Sprite):
 
     def dibujar(self, pantalla):
         pantalla.blit(self.image, self.rect)
+        
+        # Dibujar barra de potencia del salto si se está cargando
+        if self.jump_pressed and self.en_suelo:
+            # Posición de la barra (arriba del personaje)
+            barra_x = self.rect.centerx - 25
+            barra_y = self.rect.top - 20
+            barra_ancho = 50
+            barra_alto = 6
+            
+            # Fondo de la barra (gris)
+            pygame.draw.rect(pantalla, (100, 100, 100), 
+                           (barra_x, barra_y, barra_ancho, barra_alto))
+            
+            # Calcular el porcentaje de carga
+            porcentaje = (self.jump_power - self.min_jump_power) / (self.max_jump_power - self.min_jump_power)
+            ancho_carga = int(barra_ancho * porcentaje)
+            
+            # Color de la barra según la potencia
+            if porcentaje < 0.5:
+                color = (255, 255, 0)  # Amarillo para salto bajo
+            elif porcentaje < 0.8:
+                color = (255, 165, 0)  # Naranja para salto medio
+            else:
+                color = (255, 0, 0)    # Rojo para salto máximo
+            
+            # Dibujar la carga
+            if ancho_carga > 0:
+                pygame.draw.rect(pantalla, color, 
+                               (barra_x, barra_y, ancho_carga, barra_alto))
+            
+            # Borde de la barra
+            pygame.draw.rect(pantalla, (255, 255, 255), 
+                           (barra_x, barra_y, barra_ancho, barra_alto), 1)
 
 
 # ==============================
