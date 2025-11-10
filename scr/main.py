@@ -5,6 +5,7 @@ import os
 import time  
 import math  # <-- AGREGADO: Para funciones trigonométricas
 import serial # <-- MODIFICADO: Importado
+import serial.tools.list_ports # <-- ¡AÑADIDO!
 import mysql.connector # <-- MODIFICADO: Importado para guardar puntaje
 
 # Importar todas las clases necesarias
@@ -28,6 +29,9 @@ pygame.display.set_caption("DINO RUN EXTREME")
 # --- FUNCIÓN INTRO ÉPICA ---
 def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, sonido_gameover=None, muted=False):
     """Muestra una intro épica antes de comenzar el juego"""
+    
+    # ⬇️ MODIFICADO: Acceder a la variable serial global ⬇️
+    global arduino_serial
     
     # Cargar y reproducir música de intro "Milky Way Wishes"
     try:
@@ -54,7 +58,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
                 "¿Hasta dónde llegarás?",
                 "¡LA SUPERVIVENCIA COMIENZA AHORA!"
             ],
-            "presiona": "PRESIONA CUALQUIER TECLA PARA CONTINUAR"
+            "presiona": "PRESIONA CUALQUIER TECLA O BOTÓN PARA CONTINUAR"
         },
         "en": {
             "titulo": " DINO ",
@@ -66,7 +70,7 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
                 "How far will you go?",
                 "SURVIVAL STARTS NOW!"
             ],
-            "presiona": "PRESS ANY KEY TO CONTINUE"
+            "presiona": "PRESS ANY KEY OR BUTTON TO CONTINUE"
         }
     }
     
@@ -180,7 +184,29 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
             elif evento.type == pygame.KEYDOWN or evento.type == pygame.MOUSEBUTTONDOWN:
                 if tiempo_actual - tiempo_inicio > 2000:  # Al menos 2 segundos de intro
                     esperando = False
+
+        # -----------------------------------------------------------
+        # ⬇️ AÑADIDO: Lectura Serial para saltar intro ⬇️
+        # -----------------------------------------------------------
+        if arduino_serial is not None and arduino_serial.is_open:
+            try:
+                while arduino_serial.in_waiting > 0:
+                    linea = arduino_serial.readline().decode('utf-8').strip()
+                    # Si leemos CUALQUIER cosa del Arduino, es una "tecla"
+                    if linea and tiempo_actual - tiempo_inicio > 2000:
+                        print(f"[SERIAL INTRO] Señal recibida: {linea}. Continuando...")
+                        esperando = False
+                        break # Salir del while in_waiting
+            except Exception as e:
+                print(f"[ERROR SERIAL INTRO] {e}")
+                # No cerramos el puerto, solo dejamos de leer
         
+        if not esperando: # Si el serial o teclado nos hizo salir
+            break # Salir del bucle 'while esperando'
+        # -----------------------------------------------------------
+        # ⬆️ FIN BLOQUE SERIAL INTRO ⬆️
+        # -----------------------------------------------------------
+
         # Actualizar partículas
         for particula in particulas_intro:
             particula.update()
@@ -338,6 +364,49 @@ def mostrar_intro_epica(ventana, ancho, alto, idioma="es", sonido_salto=None, so
     except Exception as e:
         print(f"[ERROR MÚSICA INTRO] Error al detener música: {e}")
 
+# ----------------------------------------------------
+# ⬇️ FUNCIÓN PARA ENCONTRAR PUERTO (AÑADIDA) ⬇️
+# ----------------------------------------------------
+def encontrar_puerto_arduino():
+    """
+    Escanea los puertos COM y devuelve el nombre del puerto
+    que coincida con un Arduino Nano (original o clon).
+    """
+    print("[SERIAL] Buscando Arduino Nano...")
+    
+    # Lista de (VID, PID) comunes para Arduino Nano y clones
+    # (VID, PID) -> (Vendor ID, Product ID)
+    nano_devices = [
+        (0x2341, 0x0043), # Arduino Nano (Original, FTDI)
+        (0x2341, 0x0057), # Arduino Nano (Nuevo Bootloader, ATmega328P)
+        (0x1A86, 0x7523), # Clon (CH340)
+        (0x0403, 0x6001)  # Clon (FTDI FT232R)
+    ]
+    
+    # Descripciones comunes
+    nano_descriptions = ["arduino nano", "usb-serial ch340"]
+
+    ports = serial.tools.list_ports.comports()
+    
+    # 1. Buscar por coincidencia de VID/PID (el método más fiable)
+    for port in ports:
+        for vid, pid in nano_devices:
+            if port.vid == vid and port.pid == pid:
+                print(f"[SERIAL] Arduino encontrado en {port.device} (Coincidencia VID/PID)")
+                return port.device
+    
+    # 2. Si falla, buscar por descripción (método de respaldo)
+    for port in ports:
+        for desc in nano_descriptions:
+            # Comprobar que port.description no sea None antes de usar .lower()
+            if port.description and (desc in port.description.lower()):
+                print(f"[SERIAL] Arduino encontrado en {port.device} (Coincidencia Descripción)")
+                return port.device
+    
+    # Si no se encuentra nada
+    print("[AVISO SERIAL] No se pudo encontrar un Arduino Nano automáticamente.")
+    return None
+
 # --- RUTA DE IMÁGENES Y MÚSICA (MOVIDA ARRIBA) ---
 # Detectar si estamos en PyInstaller o en desarrollo
 if getattr(sys, 'frozen', False):
@@ -350,23 +419,33 @@ else:
     RUTA_MUSICA = os.path.join(os.path.dirname(__file__), "..", "musica")
 
 # ----------------------------------------------------
-# ⬇️ CONFIGURACIÓN Y CONEXIÓN SERIAL (GLOBAL) ⬇️
+# ⬇️ CONFIGURACIÓN Y CONEXIÓN SERIAL (MODIFICADO) ⬇️
 # ----------------------------------------------------
-# ⚠️ IMPORTANTE: CAMBIA 'COM4' por el puerto de tu Arduino
-PUERTO_SERIAL = 'COM4' 
 BAUD_RATE = 9600
 
+# ⚠️ ¡YA NO SE DEFINE PUERTO_SERIAL MANUALMENTE!
+# PUERTO_SERIAL = 'COM3'  <-- Esta línea se elimina o comenta
+
+# Llamamos a la función para encontrar el puerto automáticamente
+PUERTO_SERIAL_ENCONTRADO = encontrar_puerto_arduino() 
+
 arduino_serial = None
-try:
-    # timeout=0.1 permite que el programa no se bloquee esperando datos
-    arduino_serial = serial.Serial(PUERTO_SERIAL, BAUD_RATE, timeout=0.1)
-    time.sleep(2)  # Espera para que la conexión se establezca completamente
-    print(f"[SERIAL] Conexión con Arduino establecida en {PUERTO_SERIAL}.")
-except Exception as e:
-    print(f"[ERROR SERIAL] No se pudo conectar a Arduino en {PUERTO_SERIAL}: {e}")
+
+if PUERTO_SERIAL_ENCONTRADO:
+    try:
+        # Usamos el puerto que encontró la función
+        arduino_serial = serial.Serial(PUERTO_SERIAL_ENCONTRADO, BAUD_RATE, timeout=0.1)
+        time.sleep(2)  # Espera para que la conexión se establezca completamente
+        print(f"[SERIAL] Conexión con Arduino establecida en {PUERTO_SERIAL_ENCONTRADO}.")
+    except Exception as e:
+        print(f"[ERROR SERIAL] No se pudo conectar a Arduino en {PUERTO_SERIAL_ENCONTRADO}: {e}")
+        arduino_serial = None # Asegurarse que sea None si falla la conexión
+else:
+    print(f"[ERROR SERIAL] No se encontró ningún puerto de Arduino compatible.")
 # ----------------------------------------------------
 # ⬆️ FIN CONFIGURACIÓN SERIAL ⬆️
 # ----------------------------------------------------
+
 
 # --- FUENTES GLOBALES PARA PANTALLA INICIAL (NUEVO) ---
 try:
