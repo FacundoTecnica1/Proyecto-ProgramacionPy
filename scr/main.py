@@ -1068,7 +1068,8 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                         host="localhost",
                         user="root",
                         password="",
-                        database="dino"
+                        database="dino",
+                        connection_timeout=3
                     )
                     cursor = conexion.cursor()
 
@@ -1092,9 +1093,10 @@ def bucle_juego(personaje_elegido, mundo_elegido, nombre_jugador, id_jugador, vo
                         print("[AVISO] No se guardó el puntaje: jugador sin nombre registrado.")
 
                     conexion.close()
-                except Exception as e:
+                except (mysql.connector.Error, RuntimeError, Exception) as e:
                     # ⚠️ Este error de DB no afecta la jugabilidad
                     print(f"[ERROR BD] No se pudo guardar el puntaje: {e}")
+                    print("[INFO] El juego continúa sin guardar en base de datos")
                 # === FIN BLOQUE BD ===
 
             # --- PUNTAJE ---

@@ -1,5 +1,5 @@
 import pygame
-import mysql.connector
+import pymysql
 import sys
 import os
 import serial # <-- MODIFICADO: Importado
@@ -9,6 +9,28 @@ if getattr(sys, 'frozen', False):
     RUTA_BASE = os.path.join(sys._MEIPASS, "img")
 else:
     RUTA_BASE = os.path.join(os.path.dirname(__file__), "..", "img")
+
+# Ruta de la aplicación (donde escribir logs). Si está congelado por PyInstaller,
+# escribir junto al ejecutable, sino junto al archivo .py
+if getattr(sys, 'frozen', False):
+    RUTA_APP = os.path.dirname(sys.executable)
+else:
+    RUTA_APP = os.path.dirname(__file__)
+
+def write_log(msg: str):
+    """Intenta escribir una línea en rank_debug.log junto al ejecutable (silencioso si falla)."""
+    try:
+        with open(os.path.join(RUTA_APP, "rank_debug.log"), "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+    except Exception:
+        # No fallar la ejecución del juego por el logging
+        pass
+
+# Señal de que el módulo fue cargado (útil para distinguir si el exe está usando esta versión)
+try:
+    write_log("[INFO] mostrar_ranking module cargado")
+except Exception:
+    pass
 
 class MostrarRanking:
     # MODIFICADO: Añadido arduino_serial=None e idioma
@@ -60,22 +82,37 @@ class MostrarRanking:
         self.medalla_bronce = pygame.image.load(os.path.join(RUTA_BASE, "bronce.png")).convert_alpha()
 
         # --- Conexión BD ---
+        write_log("[INFO] Intentando conectar a MySQL con PyMySQL...")
+        
         try:
-            self.conn = mysql.connector.connect(
+            self.conn = pymysql.connect(
                 host="localhost",
                 user="root",
                 password="",
-                database="dino"
+                database="dino",
+                connect_timeout=3,
+                charset='utf8mb4',
+                cursorclass=pymysql.cursors.Cursor
             )
             self.cursor = self.conn.cursor()
-            print("[OK] Conectado a la base de datos MySQL")
-        except mysql.connector.Error as e:
-            print(f"[ERROR DB] No se pudo conectar: {e}")
+            print("[OK] Conectado a la base de datos MySQL (PyMySQL)")
+            write_log("[OK] Conectado a la base de datos MySQL (PyMySQL)")
+        except Exception as e:
+            print(f"[ERROR DB] No se pudo conectar a MySQL: {e}")
+            print("[INFO] El juego funcionará sin ranking persistente")
+            write_log(f"[ERROR DB] No se pudo conectar a MySQL: {e}")
+            write_log(f"[ERROR DB] Tipo de error: {type(e).__name__}")
+            import traceback
+            write_log(f"[ERROR DB] Traceback: {traceback.format_exc()}")
             self.conn = None
             self.cursor = None
+        write_log(f"[INFO] Cursor inicializado: {self.cursor is not None}")
 
     def obtener_top3(self):
+        print(f"[DEBUG] obtener_top3 llamado. cursor existe: {self.cursor is not None}")
         if not self.cursor:
+            print("[DEBUG] No hay cursor, retornando lista vacía")
+            write_log("[DEBUG] obtener_top3 llamado pero no hay cursor, lista vacía")
             return []
         try:
             self.cursor.execute("""
@@ -85,9 +122,13 @@ class MostrarRanking:
                 ORDER BY r.Puntaje DESC
                 LIMIT 3
             """)
-            return self.cursor.fetchall()
+            resultados = self.cursor.fetchall()
+            print(f"[DEBUG] Resultados obtenidos: {resultados}")
+            write_log(f"[DEBUG] Resultados obtenidos: {resultados}")
+            return resultados
         except Exception as e:
             print(f"[ERROR SQL] {e}")
+            write_log(f"[ERROR SQL] {e}")
             return []
 
     def dibujar_texto_con_sombra(self, texto, fuente, color, x, y, centro=False):
@@ -99,9 +140,14 @@ class MostrarRanking:
         
         sombra = fuente.render(texto, True, self.color_sombra)
         render = fuente.render(texto, True, color)
-        rect = render.get_rect(center=(x, y)) if centro else (x, y)
-        sombra_rect = rect.copy()
-        sombra_rect.move_ip(3, 3)
+        
+        if centro:
+            rect = render.get_rect(center=(x, y))
+            sombra_rect = sombra.get_rect(center=(x + 3, y + 3))
+        else:
+            rect = (x, y)
+            sombra_rect = (x + 3, y + 3)
+            
         self.pantalla.blit(sombra, sombra_rect)
         self.pantalla.blit(render, rect)
 
@@ -152,6 +198,12 @@ class MostrarRanking:
                                           self.ancho // 2, 90, centro=True)
 
             top3 = self.obtener_top3()
+
+            # Registrar en log lo que el exe obtuvo para poder diagnosticar diferencias
+            try:
+                write_log(f"[DEBUG] mostrar loop top3: {top3}")
+            except Exception:
+                pass
 
             if not top3:
                 self.dibujar_texto_con_sombra(self.txt["no_records"],

@@ -6,7 +6,12 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('img', 'img'), ('musica', 'musica')],
-    hiddenimports=[],
+    hiddenimports=[
+        'pymysql',
+        'pymysql.cursors',
+        'pymysql.converters',
+        'pymysql.connections'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

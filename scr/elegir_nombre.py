@@ -120,7 +120,13 @@ class ElegirNombre:
     # ============================
     def crear_tablas(self):
         try:
-            conexion = mysql.connector.connect(**self.db_config)
+            conexion = mysql.connector.connect(
+                host=self.db_config['host'],
+                user=self.db_config['user'],
+                password=self.db_config['password'],
+                database=self.db_config['database'],
+                connection_timeout=3
+            )
             cursor = conexion.cursor()
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS usuario (
@@ -138,8 +144,9 @@ class ElegirNombre:
             """)
             conexion.commit()
             conexion.close()
-        except Exception as e:
-            print(f"[ERROR DB] {e}")
+        except (mysql.connector.Error, RuntimeError, Exception) as e:
+            print(f"[ERROR DB] No se pudo crear tablas: {e}")
+            print(f"[INFO] El juego funcionará sin base de datos")
 
     def guardar_nombre(self, nombre):
         """Guarda el nombre en la base de datos y devuelve su ID"""
