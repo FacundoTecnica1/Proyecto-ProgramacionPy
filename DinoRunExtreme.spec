@@ -10,7 +10,12 @@ a = Analysis(
         'pymysql',
         'pymysql.cursors',
         'pymysql.converters',
-        'pymysql.connections'
+        'pymysql.connections',
+        'serial',
+        'serial.tools.list_ports',
+        'serial.serialwin32',
+        'serial.win32',
+        'serial.urlhandler',
     ],
     hookspath=[],
     hooksconfig={},

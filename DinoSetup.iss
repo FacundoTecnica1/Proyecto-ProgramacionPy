@@ -43,11 +43,14 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; CORREGIDO: Copiar TODO el contenido incluyendo _internal con todas las DLLs
-Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; Renombrar el ejecutable a Dino.exe
+; Copiar el ejecutable principal renombrado
 Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\DinoRunExtreme.exe"; DestDir: "{app}"; DestName: "Dino.exe"; Flags: ignoreversion
+; Copiar todo el contenido de _internal (DLLs, recursos, subcarpetas)
+Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Copiar archivo de instrucciones
 Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\INSTRUCCIONES.txt"; DestDir: "{app}"; Flags: ignoreversion
+; (Opcional) Copiar archivo de log de ranking si es útil para depuración
+Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\rank_debug.log"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
