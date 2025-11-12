@@ -161,10 +161,3 @@ PY
 
 ---
 
-Si quieres, puedo:
-
-- Generar un `requirements.txt` mínimo
-- Ejecutar PyInstaller localmente (si me indicas que lo haga aquí)
-- Probar y ajustar `DinoRunExtreme.spec` para asegurar que pyserial y demás módulos nativos se incluyan
-
-Marca la tarea en progreso cuando quieras que haga alguno de esos pasos.
