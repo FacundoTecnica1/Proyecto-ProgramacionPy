@@ -14,7 +14,7 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} v{#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={autopf}\{#MyAppName}
+DefaultDirName=C:\{#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ; "ArchitecturesAllowed=x64compatible" specifies that Setup cannot run
 ; on anything but x64 and Windows 11 on Arm.
@@ -25,12 +25,11 @@ ArchitecturesAllowed=x64compatible
 ; the 64-bit view of the registry.
 ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
-InfoBeforeFile=D:\xampp\htdocs\Proyecto-ProgramacionPy\INSTRUCCIONES.txt
-; Uncomment the following line to run in non administrative install mode (install for current user only).
-;PrivilegesRequired=lowest
-OutputDir=D:\xampp\htdocs\Proyecto-ProgramacionPy
+InfoBeforeFile=C:\xampp\htdocs\Proyecto-ProgramacionPy\INSTRUCCIONES.txt
+PrivilegesRequired=lowest
+OutputDir=C:\xampp\htdocs\Proyecto-ProgramacionPy
 OutputBaseFilename=DinoSetup
-SetupIconFile=D:\xampp\htdocs\Proyecto-ProgramacionPy\setup.ico
+SetupIconFile=C:\xampp\htdocs\Proyecto-ProgramacionPy\setup.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -44,13 +43,13 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 ; Copiar el ejecutable principal renombrado
-Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\DinoRunExtreme.exe"; DestDir: "{app}"; DestName: "Dino.exe"; Flags: ignoreversion
+Source: "C:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\DinoRunExtreme.exe"; DestDir: "{app}"; DestName: "Dino.exe"; Flags: ignoreversion
 ; Copiar todo el contenido de _internal (DLLs, recursos, subcarpetas)
-Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "C:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\_internal\*"; DestDir: "{app}\_internal"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Copiar archivo de instrucciones
-Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\INSTRUCCIONES.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "C:\xampp\htdocs\Proyecto-ProgramacionPy\INSTRUCCIONES.txt"; DestDir: "{app}"; Flags: ignoreversion
 ; (Opcional) Copiar archivo de log de ranking si es útil para depuración
-Source: "D:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\rank_debug.log"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "C:\xampp\htdocs\Proyecto-ProgramacionPy\dist\DinoRunExtreme\rank_debug.log"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
