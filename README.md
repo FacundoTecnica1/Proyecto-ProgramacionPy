@@ -25,7 +25,7 @@ Hay dos formas de jugar: **descargando el ejecutable** o **ejecutando desde el c
 ### Opción 1: Descargar el Instalador (Recomendado para jugar rápido) 🚀
 Descarga el instalador del juego para Windows directamente. Haz clic derecho y selecciona "Guardar enlace como..." si la descarga no inicia automáticamente.
 
-➡️ **[Descargar DinoSetup.exe](https://raw.githubusercontent.com/FacundoTecnica1/Proyecto-ProgramacionPy/main/instalador/DinoSetup.exe)** ⬅️
+➡️ **[Descargar DinoSetup.exe](https://raw.githubusercontent.com/FacundoTecnica1/Proyecto-ProgramacionPy/main/instalador/output/DinoSetup.exe)** ⬅️
 > **Nota:** Si el archivo .exe está en una carpeta diferente, debes cambiar la ruta en el enlace (por ejemplo, si está en la raíz, usa: `.../Proyecto-ProgramacionPy/main/DinoSetup.exe`).
 
 ---
